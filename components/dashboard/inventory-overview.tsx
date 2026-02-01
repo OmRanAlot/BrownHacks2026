@@ -14,18 +14,18 @@ type InventoryRow = {
 
 // Estimated requirement aligns with InventoryBarChart data
 const initialRows: InventoryRow[] = [
-  { id: "1", item: "Cups", estimatedRequirement: "450", stockRemaining: "320", status: "noAction" },
-  { id: "2", item: "Coffee Beans", estimatedRequirement: "120 kg", stockRemaining: "85 kg", status: "shipment" },
-  { id: "3", item: "Milk", estimatedRequirement: "80 L", stockRemaining: "55 L", status: "noAction" },
-  { id: "4", item: "Donuts", estimatedRequirement: "90", stockRemaining: "60", status: "noAction" },
-  { id: "5", item: "Napkins", estimatedRequirement: "200", stockRemaining: "0", status: "outOfStock" },
+  { id: "1", item: "Cups", estimatedRequirement: "450", stockRemaining: "420", status: "noAction" },
+  { id: "2", item: "Coffee Beans", estimatedRequirement: "120", stockRemaining: "100", status: "noAction" },
+  { id: "3", item: "Milk", estimatedRequirement: "80", stockRemaining: "70", status: "noAction" },
+  { id: "4", item: "Donuts", estimatedRequirement: "90", stockRemaining: "70", status: "noAction" },
+  { id: "5", item: "Napkins", estimatedRequirement: "200", stockRemaining: "70", status: "shipment" },
 ]
 
 function StatusBadge({ status }: { status: InventoryRow["status"] }) {
   const config = {
     shipment: {
       label: "Shipment enroute",
-      className: "bg-success/10 text-success",
+      className: "bg-orange-500/10 text-orange-500",
     },
     confirmation: {
       label: "Confirmation",
@@ -33,7 +33,7 @@ function StatusBadge({ status }: { status: InventoryRow["status"] }) {
     },
     noAction: {
       label: "No Action Required",
-      className: "bg-accent/10 text-accent",
+      className: "bg-success/10 text-success",
     },
     outOfStock: {
       label: "Out of stock",
@@ -50,11 +50,13 @@ function StatusBadge({ status }: { status: InventoryRow["status"] }) {
 
 export function InventoryOverview() {
   const [rows, setRows] = useState<InventoryRow[]>(initialRows)
+  const [orderConfirmed, setOrderConfirmed] = useState(false)
 
   const handleConfirmOrder = () => {
     setRows((prev) =>
       prev.map((row) => ({ ...row, status: "shipment" as const }))
     )
+    setOrderConfirmed(true)
   }
 
   return (
@@ -66,10 +68,12 @@ export function InventoryOverview() {
             Current stock levels and status
           </p>
         </div>
-        <Button onClick={handleConfirmOrder} className="gap-2">
-          <Check className="h-4 w-4" />
-          Confirm Order
-        </Button>
+        {!orderConfirmed && (
+          <Button onClick={handleConfirmOrder} className="gap-2">
+            <Check className="h-4 w-4" />
+            Confirm Order
+          </Button>
+        )}
       </div>
 
       <div className="overflow-x-auto">

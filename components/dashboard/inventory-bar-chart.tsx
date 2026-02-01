@@ -13,20 +13,36 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 
-// Estimated Requirement > In Stock for all; Napkins In Stock = 0
-const inventoryData = [
-  { item: "Cups", estimated: 450, inStock: 320 },
-  { item: "Coffee Beans", estimated: 120, inStock: 85 },
-  { item: "Milk", estimated: 80, inStock: 55 },
-  { item: "Donuts", estimated: 90, inStock: 60 },
-  { item: "Napkins", estimated: 200, inStock: 0 },
+// Standard dataset (matches inventory-overview.tsx). ordered = amount on order (shipment en route).
+const inventoryDataStandard = [
+  { item: "Cups", estimated: 450, inStock: 320, ordered: 0 },
+  { item: "Coffee Beans", estimated: 120, inStock: 85, ordered: 35 },
+  { item: "Milk", estimated: 80, inStock: 55, ordered: 0 },
+  { item: "Donuts", estimated: 90, inStock: 60, ordered: 0 },
+  { item: "Napkins", estimated: 200, inStock: 0, ordered: 0 },
+]
+
+// Demo dataset (matches inventory-overview-demo.tsx). ordered = amount on order (shipment en route).
+const inventoryDataDemo = [
+  { item: "Cups", estimated: 450, inStock: 420, ordered: 0 },
+  { item: "Coffee Beans", estimated: 120, inStock: 5.2, ordered: 114.8 },
+  { item: "Milk", estimated: 80, inStock: 12, ordered: 68 },
+  { item: "Donuts", estimated: 90, inStock: 23, ordered: 67 },
+  { item: "Napkins", estimated: 200, inStock: 7, ordered: 193 },
 ]
 
 // Estimated requirement = green, In stock = orange
 const estimatedColor = "oklch(0.6 0.15 145)"
 const inStockColor = "oklch(0.7 0.15 65)"
 
-export function InventoryBarChart() {
+export interface InventoryBarChartProps {
+  /** When true, use demo dataset (inventory-overview-demo); otherwise standard (inventory-overview). */
+  useDemo?: boolean
+}
+
+export function InventoryBarChart({ useDemo = false }: InventoryBarChartProps) {
+  const inventoryData = useDemo ? inventoryDataDemo : inventoryDataStandard
+
   return (
     <div className="rounded-xl border border-border bg-card p-6">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -34,7 +50,7 @@ export function InventoryBarChart() {
           <h2 className="text-lg font-semibold text-foreground">Inventory Levels</h2>
           <p className="text-sm text-muted-foreground">Estimated Requirement vs In Stock</p>
         </div>
-        <div className="flex items-center gap-4 text-xs">
+        <div className="flex flex-wrap items-center gap-4 text-xs">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-3 rounded-sm" style={{ backgroundColor: estimatedColor }} />
             <span className="text-muted-foreground">Estimated Requirement</span>
@@ -43,6 +59,10 @@ export function InventoryBarChart() {
             <span className="h-2.5 w-3 rounded-sm" style={{ backgroundColor: inStockColor }} />
             <span className="text-muted-foreground">In Stock</span>
           </div>
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-3 rounded-sm opacity-50" style={{ backgroundColor: inStockColor }} />
+            <span className="text-muted-foreground">Ordered (pending)</span>
+          </div>
         </div>
       </div>
 
@@ -50,6 +70,7 @@ export function InventoryBarChart() {
         config={{
           estimated: { label: "Estimated Requirement", color: estimatedColor },
           inStock: { label: "In Stock", color: inStockColor },
+          ordered: { label: "Ordered (pending)", color: inStockColor },
         }}
         className="h-[300px]"
       >
@@ -78,7 +99,15 @@ export function InventoryBarChart() {
           />
           <ChartTooltip content={<ChartTooltipContent />} />
           <Bar dataKey="estimated" fill={estimatedColor} name="Estimated Requirement" radius={[2, 2, 0, 0]} />
-          <Bar dataKey="inStock" fill={inStockColor} name="In Stock" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="inStock" fill={inStockColor} name="In Stock" radius={[2, 2, 0, 0]} stackId="stock" />
+          <Bar
+            dataKey="ordered"
+            fill={inStockColor}
+            fillOpacity={0.45}
+            name="Ordered (pending)"
+            radius={[2, 2, 0, 0]}
+            stackId="stock"
+          />
         </BarChart>
       </ChartContainer>
     </div>
