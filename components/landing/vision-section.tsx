@@ -12,7 +12,7 @@ export function VisionSection() {
             </span>
             
             <h2 className="mb-8 font-serif text-4xl leading-tight text-foreground md:text-5xl">
-              AI for the <em className="italic">Physical</em>&nbsp;World
+              Plan with <em className="italic">Confidence</em>
             </h2>
             
             <p className="mb-12 text-lg leading-relaxed text-muted-foreground">
@@ -27,7 +27,7 @@ export function VisionSection() {
               />
               <FeatureItem
                 title="Demand Prediction"
-                description="Real-time demand forecasting with 94.7% accuracy. Know exactly when surges will happen."
+                description="Real-time demand forecasting with high accuracy. Know exactly when surges will happen."
               />
               <FeatureItem
                 title="State Classification"

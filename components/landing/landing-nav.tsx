@@ -56,8 +56,8 @@ export function LandingNav() {
       <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
         <Link href="/" className="flex min-w-0 shrink-0 items-center scale-105 origin-left">
           <Image
-            src="/placeholder-logo.png"
-            alt="Logo"
+            src="/clarity-logo.png"
+            alt="Clarity"
             width={120}
             height={40}
             className="h-10 w-auto object-contain"
