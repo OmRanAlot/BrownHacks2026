@@ -1,12 +1,14 @@
 {
     "metadata": {
-        "timestamp": "2026-02-01T00:25:04Z",
+        "timestamp": "2026-02-01T06:45:59Z",
         "target_location": "1873 Broadway, NY",
-        "hack_context": "BrownHacks2026_Predictive_Model"
+        "hack_context": "BrownHacks2026_Predictive_Model",
+        "direction_method": "TomTom routing compare (POI\u2192Cafe vs Cafe\u2192POI) using trafficDelayInSeconds"
     },
     "points_of_interest": [
         {
             "poi_name": "Cafe Aroma",
+            "weight": 1.0,
             "input_coordinates": {
                 "lat": 40.7709,
                 "lon": -73.9818
@@ -96,20 +98,22 @@
                     ]
                 },
                 "@version": "4"
-            }
+            },
+            "directional_traffic": null
         },
         {
             "poi_name": "Lincoln Center / W 64th St",
+            "weight": 0.9,
             "input_coordinates": {
                 "lat": 40.7725,
                 "lon": -73.9835
             },
             "traffic_data": {
                 "frc": "FRC4",
-                "currentSpeed": 7,
+                "currentSpeed": 11,
                 "freeFlowSpeed": 11,
-                "currentTravelTime": 140,
-                "freeFlowTravelTime": 90,
+                "currentTravelTime": 85,
+                "freeFlowTravelTime": 85,
                 "confidence": 1,
                 "roadClosure": false,
                 "coordinates": {
@@ -177,21 +181,40 @@
                     ]
                 },
                 "@version": "4"
+            },
+            "directional_traffic": {
+                "to_cafe": {
+                    "lengthInMeters": 535,
+                    "travelTimeInSeconds": 148,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:45:57-05:00",
+                    "arrivalTime": "2026-02-01T01:48:25-05:00"
+                },
+                "from_cafe": {
+                    "lengthInMeters": 728,
+                    "travelTimeInSeconds": 224,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:45:57-05:00",
+                    "arrivalTime": "2026-02-01T01:49:41-05:00"
+                },
+                "dominant_direction": "balanced",
+                "delta_delay_seconds": 0
             }
         },
         {
             "poi_name": "Columbus Circle / 8th Ave",
+            "weight": 0.95,
             "input_coordinates": {
                 "lat": 40.7681,
                 "lon": -73.9819
             },
             "traffic_data": {
                 "frc": "FRC4",
-                "currentSpeed": 4,
+                "currentSpeed": 2,
                 "freeFlowSpeed": 4,
-                "currentTravelTime": 24,
+                "currentTravelTime": 58,
                 "freeFlowTravelTime": 24,
-                "confidence": 1,
+                "confidence": 0.94,
                 "roadClosure": false,
                 "coordinates": {
                     "coordinate": [
@@ -226,20 +249,39 @@
                     ]
                 },
                 "@version": "4"
+            },
+            "directional_traffic": {
+                "to_cafe": {
+                    "lengthInMeters": 293,
+                    "travelTimeInSeconds": 67,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:45:58-05:00",
+                    "arrivalTime": "2026-02-01T01:47:05-05:00"
+                },
+                "from_cafe": {
+                    "lengthInMeters": 986,
+                    "travelTimeInSeconds": 237,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:45:58-05:00",
+                    "arrivalTime": "2026-02-01T01:49:55-05:00"
+                },
+                "dominant_direction": "balanced",
+                "delta_delay_seconds": 0
             }
         },
         {
             "poi_name": "Apple Store Upper West Side",
+            "weight": 0.7,
             "input_coordinates": {
                 "lat": 40.7744,
                 "lon": -73.9821
             },
             "traffic_data": {
                 "frc": "FRC4",
-                "currentSpeed": 9,
+                "currentSpeed": 14,
                 "freeFlowSpeed": 14,
-                "currentTravelTime": 162,
-                "freeFlowTravelTime": 103,
+                "currentTravelTime": 98,
+                "freeFlowTravelTime": 98,
                 "confidence": 1,
                 "roadClosure": false,
                 "coordinates": {
@@ -307,19 +349,38 @@
                     ]
                 },
                 "@version": "4"
+            },
+            "directional_traffic": {
+                "to_cafe": {
+                    "lengthInMeters": 869,
+                    "travelTimeInSeconds": 272,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:45:59-05:00",
+                    "arrivalTime": "2026-02-01T01:50:31-05:00"
+                },
+                "from_cafe": {
+                    "lengthInMeters": 389,
+                    "travelTimeInSeconds": 100,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:45:59-05:00",
+                    "arrivalTime": "2026-02-01T01:47:39-05:00"
+                },
+                "dominant_direction": "balanced",
+                "delta_delay_seconds": 0
             }
         },
         {
             "poi_name": "W 72nd St Subway Hub",
+            "weight": 0.8,
             "input_coordinates": {
                 "lat": 40.7788,
                 "lon": -73.9823
             },
             "traffic_data": {
                 "frc": "FRC4",
-                "currentSpeed": 6,
+                "currentSpeed": 9,
                 "freeFlowSpeed": 9,
-                "currentTravelTime": 275,
+                "currentTravelTime": 176,
                 "freeFlowTravelTime": 176,
                 "confidence": 1,
                 "roadClosure": false,
@@ -396,19 +457,38 @@
                     ]
                 },
                 "@version": "4"
+            },
+            "directional_traffic": {
+                "to_cafe": {
+                    "lengthInMeters": 1588,
+                    "travelTimeInSeconds": 346,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:46:00-05:00",
+                    "arrivalTime": "2026-02-01T01:51:46-05:00"
+                },
+                "from_cafe": {
+                    "lengthInMeters": 1127,
+                    "travelTimeInSeconds": 252,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:46:00-05:00",
+                    "arrivalTime": "2026-02-01T01:50:12-05:00"
+                },
+                "dominant_direction": "balanced",
+                "delta_delay_seconds": 0
             }
         },
         {
             "poi_name": "Museum of Natural History",
+            "weight": 0.6,
             "input_coordinates": {
                 "lat": 40.7813,
                 "lon": -73.974
             },
             "traffic_data": {
                 "frc": "FRC4",
-                "currentSpeed": 6,
+                "currentSpeed": 9,
                 "freeFlowSpeed": 9,
-                "currentTravelTime": 229,
+                "currentTravelTime": 152,
                 "freeFlowTravelTime": 152,
                 "confidence": 1,
                 "roadClosure": false,
@@ -477,20 +557,39 @@
                     ]
                 },
                 "@version": "4"
+            },
+            "directional_traffic": {
+                "to_cafe": {
+                    "lengthInMeters": 1912,
+                    "travelTimeInSeconds": 421,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:46:01-05:00",
+                    "arrivalTime": "2026-02-01T01:53:02-05:00"
+                },
+                "from_cafe": {
+                    "lengthInMeters": 2107,
+                    "travelTimeInSeconds": 400,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:46:01-05:00",
+                    "arrivalTime": "2026-02-01T01:52:41-05:00"
+                },
+                "dominant_direction": "balanced",
+                "delta_delay_seconds": 0
             }
         },
         {
             "poi_name": "Central Park South / 7th Ave",
+            "weight": 0.75,
             "input_coordinates": {
                 "lat": 40.7659,
                 "lon": -73.979
             },
             "traffic_data": {
                 "frc": "FRC4",
-                "currentSpeed": 7,
-                "freeFlowSpeed": 11,
-                "currentTravelTime": 40,
-                "freeFlowTravelTime": 24,
+                "currentSpeed": 12,
+                "freeFlowSpeed": 12,
+                "currentTravelTime": 23,
+                "freeFlowTravelTime": 23,
                 "confidence": 1,
                 "roadClosure": false,
                 "coordinates": {
@@ -518,19 +617,38 @@
                     ]
                 },
                 "@version": "4"
+            },
+            "directional_traffic": {
+                "to_cafe": {
+                    "lengthInMeters": 1158,
+                    "travelTimeInSeconds": 259,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:46:02-05:00",
+                    "arrivalTime": "2026-02-01T01:50:21-05:00"
+                },
+                "from_cafe": {
+                    "lengthInMeters": 1138,
+                    "travelTimeInSeconds": 256,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:46:02-05:00",
+                    "arrivalTime": "2026-02-01T01:50:18-05:00"
+                },
+                "dominant_direction": "balanced",
+                "delta_delay_seconds": 0
             }
         },
         {
             "poi_name": "Times Square / Broadway",
+            "weight": 0.85,
             "input_coordinates": {
                 "lat": 40.758,
                 "lon": -73.9855
             },
             "traffic_data": {
                 "frc": "FRC4",
-                "currentSpeed": 4,
+                "currentSpeed": 6,
                 "freeFlowSpeed": 6,
-                "currentTravelTime": 239,
+                "currentTravelTime": 143,
                 "freeFlowTravelTime": 143,
                 "confidence": 1,
                 "roadClosure": false,
@@ -579,19 +697,38 @@
                     ]
                 },
                 "@version": "4"
+            },
+            "directional_traffic": {
+                "to_cafe": {
+                    "lengthInMeters": 1799,
+                    "travelTimeInSeconds": 436,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:46:03-05:00",
+                    "arrivalTime": "2026-02-01T01:53:19-05:00"
+                },
+                "from_cafe": {
+                    "lengthInMeters": 2124,
+                    "travelTimeInSeconds": 533,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:46:03-05:00",
+                    "arrivalTime": "2026-02-01T01:54:56-05:00"
+                },
+                "dominant_direction": "balanced",
+                "delta_delay_seconds": 0
             }
         },
         {
             "poi_name": "Port Authority Bus Terminal",
+            "weight": 0.9,
             "input_coordinates": {
                 "lat": 40.7568,
                 "lon": -73.991
             },
             "traffic_data": {
                 "frc": "FRC4",
-                "currentSpeed": 4,
+                "currentSpeed": 8,
                 "freeFlowSpeed": 8,
-                "currentTravelTime": 384,
+                "currentTravelTime": 177,
                 "freeFlowTravelTime": 177,
                 "confidence": 1,
                 "roadClosure": false,
@@ -668,10 +805,29 @@
                     ]
                 },
                 "@version": "4"
+            },
+            "directional_traffic": {
+                "to_cafe": {
+                    "lengthInMeters": 2843,
+                    "travelTimeInSeconds": 598,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:46:04-05:00",
+                    "arrivalTime": "2026-02-01T01:56:02-05:00"
+                },
+                "from_cafe": {
+                    "lengthInMeters": 2928,
+                    "travelTimeInSeconds": 757,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:46:04-05:00",
+                    "arrivalTime": "2026-02-01T01:58:41-05:00"
+                },
+                "dominant_direction": "balanced",
+                "delta_delay_seconds": 0
             }
         },
         {
             "poi_name": "West Side Highway at 57th St",
+            "weight": 0.5,
             "input_coordinates": {
                 "lat": 40.772,
                 "lon": -73.993
@@ -857,19 +1013,38 @@
                     ]
                 },
                 "@version": "4"
+            },
+            "directional_traffic": {
+                "to_cafe": {
+                    "lengthInMeters": 1466,
+                    "travelTimeInSeconds": 334,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:46:05-05:00",
+                    "arrivalTime": "2026-02-01T01:51:39-05:00"
+                },
+                "from_cafe": {
+                    "lengthInMeters": 1580,
+                    "travelTimeInSeconds": 331,
+                    "trafficDelayInSeconds": 0,
+                    "departureTime": "2026-02-01T01:46:05-05:00",
+                    "arrivalTime": "2026-02-01T01:51:36-05:00"
+                },
+                "dominant_direction": "balanced",
+                "delta_delay_seconds": 0
             }
         },
         {
             "poi_name": "Rockefeller Center",
+            "weight": 0.7,
             "input_coordinates": {
                 "lat": 40.7587,
                 "lon": -73.9787
             },
             "traffic_data": {
                 "frc": "FRC4",
-                "currentSpeed": 4,
+                "currentSpeed": 6,
                 "freeFlowSpeed": 6,
-                "currentTravelTime": 239,
+                "currentTravelTime": 143,
                 "freeFlowTravelTime": 143,
                 "confidence": 1,
                 "roadClosure": false,
@@ -918,6 +1093,24 @@
                     ]
                 },
                 "@version": "4"
+            },
+            "directional_traffic": {
+                "to_cafe": {
+                    "lengthInMeters": 1861,
+                    "travelTimeInSeconds": 544,
+                    "trafficDelayInSeconds": 75,
+                    "departureTime": "2026-02-01T01:46:06-05:00",
+                    "arrivalTime": "2026-02-01T01:55:10-05:00"
+                },
+                "from_cafe": {
+                    "lengthInMeters": 2518,
+                    "travelTimeInSeconds": 596,
+                    "trafficDelayInSeconds": 56,
+                    "departureTime": "2026-02-01T01:46:06-05:00",
+                    "arrivalTime": "2026-02-01T01:56:02-05:00"
+                },
+                "dominant_direction": "towards_cafe",
+                "delta_delay_seconds": 19
             }
         }
     ]
