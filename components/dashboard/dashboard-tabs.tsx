@@ -10,6 +10,7 @@ import { CitySignalsPanel } from "@/components/dashboard/city-signals-panel"
 import { AgentActionFeed } from "@/components/dashboard/agent-action-feed"
 import { StaffingOverview } from "@/components/dashboard/staffing-overview"
 import { InventoryOverview } from "@/components/dashboard/inventory-overview"
+import { BusynessCard } from "@/components/dashboard/busyness-card"
 import { cn } from "@/lib/utils"
 
 const tabs = [
@@ -59,7 +60,10 @@ export function DashboardTabs() {
 function OverviewContent() {
   return (
     <>
-      <CitySnapshot />
+      <BusynessCard busynessRating={3.3} />
+      <div className="mt-4">
+        <CitySnapshot />
+      </div>
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <FootTrafficChart />

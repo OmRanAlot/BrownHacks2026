@@ -31,8 +31,8 @@ export function DashboardHeader() {
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center">
             <Image
-              src="/placeholder-logo.png"
-              alt="Logo"
+              src="/clarity-logo.png"
+              alt="Clarity"
               width={120}
               height={40}
               className="h-10 w-auto object-contain"
