@@ -53,7 +53,7 @@ export function EcosystemSection() {
             <CapabilityCard category="ANALYTICS" title="Demand Forecast" />
           </div>
           <div className="absolute bottom-[10%] left-0 -translate-x-8 lg:-translate-x-16">
-            <CapabilityCard category="OPERATIONS" title="Staff Efficiency" />
+            <CapabilityCard category="OPERATIONS" title="Smart Inventory" />
           </div>
           <div className="absolute bottom-[10%] right-0 translate-x-8 lg:translate-x-16">
             <CapabilityCard category="REVENUE" title="Optimization" />

@@ -1,5 +1,6 @@
 import json
 import math
+import os
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 
@@ -12,8 +13,10 @@ from langchain_core.runnables import RunnableLambda
 
 load_dotenv()
 
-BASELINE_PATH = "train_busyness_baseline_24h.json"
-LIVE_PATH = "train_busyness_live.json"
+# Use project root for data files
+_project_root = os.path.join(os.path.dirname(__file__), "..", "..")
+BASELINE_PATH = os.path.join(_project_root, "train_busyness_baseline_24h.json")
+LIVE_PATH = os.path.join(_project_root, "train_busyness_live.json")
 
 WINDOW_MINUTES = 20
 LOOKAHEAD_MINUTES = 30
@@ -29,6 +32,7 @@ class ExtraCustomerEstimate(BaseModel):
     confidence_0_to_1: float = Field(..., ge=0.0, le=1.0)
     main_drivers: List[str] = Field(..., min_items=1, max_items=6)
     notes: Optional[str] = None
+    
 
 
 def load_json(path: str) -> Dict[str, Any]:
@@ -139,47 +143,64 @@ def build_inputs(_: Any) -> Dict[str, Any]:
     }
 
 
-prompt = ChatPromptTemplate.from_messages([
-    ("system",
-     "You are a demand forecasting analyst for a cafe near subway stops.\n"
-     "You will be given LIVE vs BASELINE train busyness summaries for the same UTC hour window.\n"
-     "Estimate expected_extra_customers_next_30_min.\n"
-     "Start from numeric prior, then adjust slightly based on evidence: bunching, delays, train_count, and score distribution.\n"
-     "Be realistic and conservative. Keep numbers plausible for a single cafe near stations.\n"
-     "Return ONLY valid JSON with the required fields."),
-    ("human",
-     "HOUR (UTC): {hour_bucket_utc}\n\n"
-     "LIVE SUMMARY: {live_summary}\n"
-     "BASELINE SUMMARY: {baseline_summary}\n\n"
-     "NUMERIC PRIOR (start here): {prior}\n\n"
-     "LIVE SAMPLE: {live_sample}\n\n"
-     "BASELINE SAMPLE: {baseline_sample}\n\n"
-     "ASSUMPTIONS: {assumptions}\n\n"
-     "Output JSON fields:\n"
-     "- expected_customers_next_30_min\n"
-     "- expected_extra_customers_next_30_min\n"
-     "- confidence_0_to_1\n"
-     "- main_drivers\n"
-     "- notes (optional)\n"
+def run_mta_forecast() -> dict:
+    # ✅ Gemini model via LangChain
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash",
+        temperature=0.2
+        )
+
+        # Structured output: if your version supports it, this is clean.
+        # If it throws, tell me the exact error and I’ll swap to a JSON parser fallback.
+    structured_llm = llm.with_structured_output(ExtraCustomerEstimate)
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system",
+        "You are a specialized demand forecasting agent for a SINGLE cafe located near NYC subway station exits.\n"
+        "Your task is to estimate short-term customer demand caused by subway conditions.\n\n"
+        "You will receive LIVE vs BASELINE train busyness summaries for the SAME UTC hour window.\n"
+        "You MUST start from the numeric prior and only adjust conservatively.\n\n"
+        "CAUSAL MODEL TO USE:\n"
+        "- Increased subway crowding can increase sidewalk density near station exits.\n"
+        "- Train bunching and delays cause people to wait, linger, or resurface near exits.\n"
+        "- Only a small fraction of additional foot traffic converts to cafe customers.\n"
+        "- This is a single cafe, not a station-wide retailer.\n\n"
+        "Assume the cafe benefits more from delayed exits than from fast commuter throughput."
+        "IMPORTANT CONSTRAINTS:\n"
+        "- expected_extra_customers_next_30_min must be realistic (usually 0–15).\n"
+        "- If signals are mixed or weak, stay close to the numeric prior.\n"
+        "- Never invent large demand spikes without strong evidence.\n\n"
+        "Return ONLY valid JSON with the required fields."
+        ),
+        ("human",
+        "HOUR (UTC): {hour_bucket_utc}\n\n"
+        "LIVE SUMMARY:\n{live_summary}\n\n"
+        "BASELINE SUMMARY:\n{baseline_summary}\n\n"
+        "NUMERIC PRIOR (ANCHOR — start here):\n{prior}\n\n"
+        "LIVE TRAIN SAMPLE (soonest arrivals first):\n{live_sample}\n\n"
+        "BASELINE TRAIN SAMPLE:\n{baseline_sample}\n\n"
+        "ASSUMPTIONS:\n{assumptions}\n\n"
+        "ADJUSTMENT GUIDELINES:\n"
+        "- Higher live train_count vs baseline suggests more people exiting stations.\n"
+        "- Higher score_avg or score_sum vs baseline increases foot traffic pressure.\n"
+        "- Train bunching amplifies sidewalk congestion near exits.\n"
+        "- Delays >= 1 min increase dwell time near station entrances.\n"
+        "- If live conditions are similar to baseline, keep extra customers near the prior.\n\n"
+        "OUTPUT JSON FIELDS:\n"
+        "- expected_customers_next_30_min\n"
+        "- expected_extra_customers_next_30_min\n"
+        "- confidence_0_to_1\n"
+        "- main_drivers (1–6 short bullets)\n"
+        "- notes (optional)\n"
+        )
+    ])
+
+    chain = (
+        RunnableLambda(build_inputs)
+        | prompt
+        | structured_llm
     )
-])
-
-# ✅ Gemini model via LangChain
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0.2,
-)
-
-# Structured output: if your version supports it, this is clean.
-# If it throws, tell me the exact error and I’ll swap to a JSON parser fallback.
-structured_llm = llm.with_structured_output(ExtraCustomerEstimate)
-
-chain = (
-    RunnableLambda(build_inputs)
-    | prompt
-    | structured_llm
-)
-
-if __name__ == "__main__":
     result = chain.invoke({})
-    print(result.model_dump())
+    return result.model_dump()
+
+
