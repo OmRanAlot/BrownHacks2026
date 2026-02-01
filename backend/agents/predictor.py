@@ -1,330 +1,178 @@
 """
-Predictor Agent - Forecasts foot traffic using city signals
-Analyzes weather, events, maps data, and historical patterns.
+RAG-Based Foot Traffic Predictor
+Uses vector search to find similar historical patterns
 """
 
-from typing import Optional
-from datetime import datetime, timedelta
-import random
+from datetime import datetime
+from typing import Dict, List
 
 
-class PredictorAgent:
-    """
-    The Predictor Agent forecasts foot traffic by analyzing
-    multiple city signals and generating confidence scores.
-    """
+class RAGFootTrafficPredictor:
+    """Main RAG-based prediction agent"""
     
-    def __init__(self):
-        self.name = "Predictor"
-        self.status = "processing"
-        self.predictions_count = 0
-        self.signal_weights = {
-            "weather": 0.25,
-            "events": 0.35,
-            "maps_activity": 0.25,
-            "historical": 0.15,
-        }
-        self.anomalies = []
-    
-    def get_status(self) -> dict:
-        """Return agent status."""
-        return {
-            "name": self.name,
-            "status": self.status,
-            "predictions_count": self.predictions_count,
-            "signal_weights": self.signal_weights,
-            "anomalies_detected": len(self.anomalies),
-        }
-    
-    def get_anomalies(self) -> list:
-        """Return detected anomalies."""
-        return [
-            {
-                "id": "anom-001",
-                "type": "Surge Detected",
-                "detail": "Evening traffic 40% above normal",
-                "severity": "high",
-                "timestamp": datetime.now().isoformat(),
-            },
-            {
-                "id": "anom-002",
-                "type": "Pattern Break",
-                "detail": "Thursday behaving like weekend",
-                "severity": "medium",
-                "timestamp": datetime.now().isoformat(),
-            },
-        ]
-    
-    async def gather_signals(self, location_id: str) -> dict:
+    def __init__(self, vector_db, static_agent, dynamic_agent):
         """
-        Gather city signals from various sources.
-        In production, this would call real APIs.
-        """
-        # Mock signal data
-        signals = {
-            "weather": {
-                "condition": "clear",
-                "temperature": 72,
-                "humidity": 45,
-                "rain_probability": 0,
-                "source": "weather_api",
-            },
-            "events": [
-                {
-                    "name": "Live Concert",
-                    "venue": "Brooklyn Bowl",
-                    "distance_miles": 0.4,
-                    "start_time": "19:00",
-                    "expected_attendance": 3000,
-                    "source": "events_api",
-                }
-            ],
-            "maps_activity": {
-                "current_popularity": 1.23,
-                "average_popularity": 1.0,
-                "trend": "increasing",
-                "nearby_density": "high",
-                "source": "maps_api",
-            },
-            "historical": {
-                "day_of_week": datetime.now().strftime("%A"),
-                "typical_pattern": "weekday",
-                "last_week_same_day": 85,
-                "last_month_average": 78,
-            },
-            "disruptions": [],
-        }
+        Initialize RAG predictor
         
-        return signals
+        Args:
+            vector_db: MongoVectorDB instance
+            static_agent: StaticDataAgent instance
+            dynamic_agent: DynamicDataAgent instance
+        """
+        self.vector_db = vector_db
+        self.static_agent = static_agent
+        self.dynamic_agent = dynamic_agent
     
-    async def predict(
-        self,
-        location_id: str,
-        date: str,
-        signals: dict,
-    ) -> dict:
+    def predict(self, business_id: str, target_datetime: datetime) -> Dict:
         """
-        Generate foot traffic prediction based on signals.
-        Uses weighted scoring to combine multiple signals.
+        🔥 MAIN RAG PREDICTION FUNCTION 🔥
+        Predict foot traffic using RAG approach
+        
+        Args:
+            business_id: Business ID to predict for
+            target_datetime: Target date/time for prediction
+        
+        Returns:
+            Prediction results with confidence and context
         """
-        self.predictions_count += 1
+        print(f"\n🤖 Starting RAG prediction for {target_datetime.strftime('%A, %B %d at %I:%M %p')}...")
         
-        # Calculate base score from signals
-        weather_score = self._score_weather(signals.get("weather", {}))
-        events_score = self._score_events(signals.get("events", []))
-        maps_score = self._score_maps(signals.get("maps_activity", {}))
-        historical_score = self._score_historical(signals.get("historical", {}))
+        # Get business info
+        business = self.vector_db.get_business(business_id)
+        if not business:
+            raise ValueError(f"Business {business_id} not found")
         
-        # Weighted combination
-        total_score = (
-            weather_score * self.signal_weights["weather"]
-            + events_score * self.signal_weights["events"]
-            + maps_score * self.signal_weights["maps_activity"]
-            + historical_score * self.signal_weights["historical"]
+        # ============================================================
+        # STEP 1: Gather Static Context (events + weather)
+        # ============================================================
+        static_context = self.static_agent.get_static_context(
+            business_location=business['location'],
+            target_datetime=target_datetime
         )
         
-        # Normalize to traffic index (0-100 scale)
-        traffic_index = min(100, int(total_score))
-        
-        # Calculate confidence based on signal quality
-        confidence = self._calculate_confidence(signals)
-        
-        # Determine demand level
-        demand_level = self._get_demand_level(traffic_index)
-        
-        # Calculate change from baseline
-        baseline = signals.get("historical", {}).get("last_month_average", 70)
-        change_percent = int(((traffic_index - baseline) / baseline) * 100)
-        
-        # Determine primary driver
-        primary_driver = self._get_primary_driver(
-            weather_score, events_score, maps_score, historical_score
+        # ============================================================
+        # STEP 2: Gather Dynamic Context (current traffic + MTA)
+        # ============================================================
+        dynamic_context = self.dynamic_agent.get_dynamic_context(
+            business_location=business['location'],
+            nearby_stations=business.get('nearby_stations', [])
         )
         
-        # Generate hourly forecasts
-        hourly_forecasts = self._generate_hourly_forecasts(traffic_index, signals)
-        
-        prediction = {
-            "id": f"pred-{self.predictions_count}",
-            "location_id": location_id,
-            "date": date,
-            "traffic_index": traffic_index,
-            "confidence": confidence,
-            "demand_level": demand_level,
-            "traffic_change": f"+{change_percent}%" if change_percent > 0 else f"{change_percent}%",
-            "primary_driver": primary_driver,
-            "hourly_forecasts": hourly_forecasts,
-            "signals_used": list(signals.keys()),
-            "timestamp": datetime.now().isoformat(),
+        # ============================================================
+        # STEP 3: Create Query Context for RAG
+        # ============================================================
+        query_context = {
+            "day_of_week": target_datetime.strftime("%A"),
+            "hour": target_datetime.hour,
+            "weather_condition": static_context['weather']['condition'],
+            "temperature": static_context['weather']['temp'],
+            "borough": business['location']['borough'],
+            "nearby_events": static_context['events_summary'],
+            "business_type": business['type'],
+            "season": self._get_season(target_datetime),
+            "is_holiday": self._is_holiday(target_datetime)
         }
         
-        # Check for anomalies
-        self._detect_anomalies(prediction, signals)
+        # ============================================================
+        # STEP 4: 🔍 RAG CALL - Query Vector DB for Similar Patterns
+        # ============================================================
+        print("\n🔍 Querying vector database for similar historical patterns...")
         
-        return prediction
-    
-    async def get_hourly_forecast(self, location_id: str, hours: int = 24) -> list:
-        """Generate hourly forecast for the next N hours."""
-        forecasts = []
-        base_hour = datetime.now().hour
+        query_text = self._format_query_text(query_context)
+        query_embedding = self.vector_db.create_embedding(query_text)
         
-        for i in range(hours):
-            hour = (base_hour + i) % 24
+        # Perform vector search with filters
+        similar_patterns = self.vector_db.vector_search(
+            query_embedding=query_embedding,
+            limit=10,
+            filter_criteria={
+                "borough": business['location']['borough'],
+                "business_type": business['type']
+            }
+        )
+        
+        print(f"✓ Found {len(similar_patterns)} similar historical patterns")
+        
+        # ============================================================
+        # STEP 5: Calculate Prediction from Retrieved Patterns
+        # ============================================================
+        if similar_patterns:
+            # Weight predictions by similarity score
+            total_weight = sum(p['score'] for p in similar_patterns)
+            weighted_traffic = sum(
+                p['foot_traffic'] * p['score'] 
+                for p in similar_patterns
+            )
+            predicted_traffic = int(weighted_traffic / total_weight)
             
-            # Simulate daily pattern
-            if 6 <= hour <= 9:  # Morning rush
-                base = 60 + random.randint(-5, 10)
-            elif 11 <= hour <= 14:  # Lunch
-                base = 75 + random.randint(-5, 15)
-            elif 16 <= hour <= 20:  # Evening/dinner
-                base = 85 + random.randint(-5, 20)
-            elif 21 <= hour or hour <= 5:  # Night
-                base = 30 + random.randint(-10, 10)
-            else:
-                base = 50 + random.randint(-10, 10)
+            # Adjust based on current dynamic data
+            if dynamic_context['current_foot_traffic'] > 0:
+                # Use current traffic as adjustment factor
+                baseline_current = 500  # Assumed baseline
+                adjustment_factor = dynamic_context['current_foot_traffic'] / baseline_current
+                predicted_traffic = int(predicted_traffic * adjustment_factor)
             
-            forecasts.append({
-                "hour": f"{hour}:00",
-                "traffic_index": base,
-                "confidence": round(0.7 + random.random() * 0.2, 2),
-                "confidence_low": base - random.randint(5, 15),
-                "confidence_high": base + random.randint(5, 15),
-            })
-        
-        return forecasts
-    
-    def _score_weather(self, weather: dict) -> float:
-        """Score weather conditions (higher = better for foot traffic)."""
-        base_score = 70
-        
-        condition = weather.get("condition", "").lower()
-        if condition in ["clear", "sunny"]:
-            base_score += 20
-        elif condition in ["cloudy", "overcast"]:
-            base_score += 5
-        elif condition in ["rain", "storm"]:
-            base_score -= 30
-        
-        rain_prob = weather.get("rain_probability", 0)
-        base_score -= rain_prob * 0.3
-        
-        return max(0, min(100, base_score))
-    
-    def _score_events(self, events: list) -> float:
-        """Score nearby events impact."""
-        if not events:
-            return 50  # Neutral
-        
-        score = 50
-        for event in events:
-            distance = event.get("distance_miles", 10)
-            attendance = event.get("expected_attendance", 0)
-            
-            # Closer and larger events have more impact
-            impact = (attendance / 1000) * (1 / max(0.1, distance))
-            score += min(50, impact * 10)
-        
-        return min(100, score)
-    
-    def _score_maps(self, maps_data: dict) -> float:
-        """Score maps activity data."""
-        popularity = maps_data.get("current_popularity", 1.0)
-        return min(100, popularity * 80)
-    
-    def _score_historical(self, historical: dict) -> float:
-        """Score based on historical patterns."""
-        last_week = historical.get("last_week_same_day", 70)
-        last_month = historical.get("last_month_average", 70)
-        return (last_week + last_month) / 2
-    
-    def _calculate_confidence(self, signals: dict) -> float:
-        """Calculate prediction confidence based on signal quality."""
-        # More signals = higher confidence
-        signal_count = len([s for s in signals.values() if s])
-        base_confidence = 0.5 + (signal_count * 0.1)
-        
-        # Add some randomness for realism
-        confidence = base_confidence + random.uniform(-0.05, 0.1)
-        
-        return round(min(0.95, max(0.5, confidence)), 2)
-    
-    def _get_demand_level(self, traffic_index: int) -> str:
-        """Categorize demand level."""
-        if traffic_index >= 80:
-            return "High"
-        elif traffic_index >= 60:
-            return "Medium"
+            confidence = min(len(similar_patterns) / 10, 1.0)  # 0-1 scale
         else:
-            return "Low"
-    
-    def _get_primary_driver(
-        self,
-        weather: float,
-        events: float,
-        maps: float,
-        historical: float,
-    ) -> str:
-        """Determine the primary driver of the prediction."""
-        scores = {
-            "Weather conditions": weather,
-            "Local events": events,
-            "Area activity": maps,
-            "Historical patterns": historical,
+            # Fallback if no patterns found
+            print("⚠️  No similar patterns found, using baseline estimate")
+            predicted_traffic = 300
+            confidence = 0.3
+        
+        # ============================================================
+        # STEP 6: Return Prediction Results
+        # ============================================================
+        return {
+            "predicted_foot_traffic": predicted_traffic,
+            "confidence": confidence,
+            "similar_patterns": similar_patterns[:5],  # Top 5 for analysis
+            "context": {
+                "static": static_context,
+                "dynamic": dynamic_context,
+                "query": query_context
+            },
+            "timestamp": datetime.now()
         }
-        return max(scores, key=scores.get)
     
-    def _generate_hourly_forecasts(self, base_index: int, signals: dict) -> list:
-        """Generate detailed hourly forecasts."""
-        forecasts = []
+    def _format_query_text(self, context: Dict) -> str:
+        """
+        Format context into text for embedding
         
-        # Check if there's an event
-        events = signals.get("events", [])
-        event_hour = None
-        if events:
-            event_time = events[0].get("start_time", "")
-            if event_time:
-                event_hour = int(event_time.split(":")[0])
+        Args:
+            context: Query context dict
         
-        for hour in range(6, 23):  # 6am to 10pm
-            # Base pattern
-            if 7 <= hour <= 9:  # Morning
-                modifier = 0.8
-            elif 11 <= hour <= 14:  # Lunch
-                modifier = 1.1
-            elif 16 <= hour <= 20:  # Evening
-                modifier = 1.2
-            else:
-                modifier = 0.7
-            
-            # Event boost
-            if event_hour and abs(hour - event_hour) <= 2:
-                modifier += 0.4
-            
-            traffic = int(base_index * modifier)
-            confidence = round(0.75 + random.random() * 0.15, 2)
-            
-            forecasts.append({
-                "hour": f"{hour}:00",
-                "predicted": traffic,
-                "baseline": int(base_index * 0.85),
-                "low": traffic - random.randint(5, 12),
-                "high": traffic + random.randint(5, 12),
-                "confidence": confidence,
-            })
-        
-        return forecasts
+        Returns:
+            Formatted text string
+        """
+        return f"""
+        Day: {context['day_of_week']} at {context['hour']}:00
+        Weather: {context['weather_condition']}, Temperature: {context['temperature']}F
+        Borough: {context['borough']}
+        Events nearby: {context['nearby_events']}
+        Business type: {context['business_type']}
+        Season: {context['season']}
+        Holiday: {context['is_holiday']}
+        """
     
-    def _detect_anomalies(self, prediction: dict, signals: dict) -> None:
-        """Detect anomalies in prediction or signals."""
-        traffic = prediction.get("traffic_index", 0)
-        baseline = 70  # Assumed baseline
-        
-        # Check for significant deviation
-        if abs(traffic - baseline) > 30:
-            self.anomalies.append({
-                "id": f"anom-{len(self.anomalies) + 1}",
-                "type": "Significant Deviation",
-                "detail": f"Traffic index {traffic} deviates {abs(traffic - baseline)} from baseline",
-                "severity": "high" if abs(traffic - baseline) > 40 else "medium",
-                "timestamp": datetime.now().isoformat(),
-            })
+    def _get_season(self, date: datetime) -> str:
+        """Determine season from date"""
+        month = date.month
+        if month in [12, 1, 2]:
+            return "Winter"
+        elif month in [3, 4, 5]:
+            return "Spring"
+        elif month in [6, 7, 8]:
+            return "Summer"
+        else:
+            return "Fall"
+    
+    def _is_holiday(self, date: datetime) -> bool:
+        """Check if date is a major holiday"""
+        # Simple check - expand with actual holiday calendar
+        holidays = [
+            (1, 1),   # New Year's Day
+            (7, 4),   # Independence Day
+            (12, 25), # Christmas
+            (11, 28), # Thanksgiving (approximate - 4th Thursday)
+        ]
+        return (date.month, date.day) in holidays
