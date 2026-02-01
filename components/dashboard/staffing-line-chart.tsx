@@ -12,8 +12,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { useEventSurge } from "@/components/event-surge-context"
 
-const staffData = [
+const baseStaffData = [
   { hour: "6am", scheduled: 2, required: 2 },
   { hour: "8am", scheduled: 4, required: 4 },
   { hour: "10am", scheduled: 5, required: 5 },
@@ -25,16 +26,34 @@ const staffData = [
   { hour: "10pm", scheduled: 3, required: 3 },
 ]
 
+// Surge: lower predicted staff required (Alex removed, Jordan shortened)
+const surgeStaffData = [
+  { hour: "6am", scheduled: 2, required: 2 },
+  { hour: "8am", scheduled: 4, required: 4 },
+  { hour: "10am", scheduled: 5, required: 5 },
+  { hour: "12pm", scheduled: 8, required: 7 },
+  { hour: "2pm", scheduled: 6, required: 5 },
+  { hour: "4pm", scheduled: 5, required: 5 },
+  { hour: "6pm", scheduled: 6, required: 6 },
+  { hour: "8pm", scheduled: 4, required: 4 },
+  { hour: "10pm", scheduled: 2, required: 2 },
+]
+
 const primaryColor = "oklch(0.75 0.12 75)"
 const chart2Color = "oklch(0.6 0.15 145)"
 
 export function StaffingLineChart() {
+  const { isSurgeActive } = useEventSurge()
+  const staffData = isSurgeActive ? surgeStaffData : baseStaffData
+
   return (
     <div className="rounded-xl border border-border bg-card p-6">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Employee Forecast</h2>
-          <p className="text-sm text-muted-foreground">Hourly Prediction</p>
+          <p className="text-sm text-muted-foreground">
+            {isSurgeActive ? "Reduced demand (event surge)" : "Hourly Prediction"}
+          </p>
         </div>
         <div className="flex items-center gap-4 text-xs">
           <div className="flex items-center gap-2">

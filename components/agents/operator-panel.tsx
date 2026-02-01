@@ -1,38 +1,29 @@
 "use client"
 
 import { useState } from "react"
-import { Wrench, Calendar, MessageSquare, ShoppingCart, CheckCircle2, Clock, Play } from "lucide-react"
+import { Wrench, Calendar, MessageSquare, ShoppingCart, CheckCircle2, Clock, Play, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useEventSurge } from "@/components/event-surge-context"
 
-const actions = [
-  {
-    id: "1",
-    type: "schedule",
-    action: "Added shift: Alex Kim (4-9pm)",
-    status: "completed",
-    time: "1 min ago",
-  },
-  {
-    id: "2",
-    type: "message",
-    action: "SMS sent to Jordan Lee",
-    status: "completed",
-    time: "1 min ago",
-  },
-  {
-    id: "3",
-    type: "order",
-    action: "Milk order +15% placed",
-    status: "completed",
-    time: "Just now",
-  },
+const defaultActions = [
+  { id: "1", type: "schedule", action: "Added shift: Alex Kim (4-9pm)", status: "completed", time: "1 min ago" },
+  { id: "2", type: "message", action: "SMS sent to Jordan Lee", status: "completed", time: "1 min ago" },
+  { id: "3", type: "order", action: "Milk order +15% placed", status: "completed", time: "Just now" },
 ]
 
-const mcpTools = [
+const baseMcpTools = [
   { name: "schedule_shift", description: "Add or modify staff shifts", calls: 12 },
   { name: "send_notification", description: "Send SMS/email to staff", calls: 8 },
   { name: "place_order", description: "Order inventory from suppliers", calls: 3 },
   { name: "update_availability", description: "Sync with scheduling system", calls: 5 },
+]
+
+// Surge: fewer tools invoked (reduced demand scenario)
+const surgeMcpTools = [
+  { name: "schedule_shift", description: "Add or modify staff shifts", calls: 3 },
+  { name: "send_notification", description: "Send SMS/email to staff", calls: 2 },
+  { name: "place_order", description: "Order inventory from suppliers", calls: 2 },
+  { name: "update_availability", description: "Sync with scheduling system", calls: 2 },
 ]
 
 const pendingActions = [
@@ -42,11 +33,23 @@ const pendingActions = [
 
 export function OperatorPanel() {
   const [simulating, setSimulating] = useState(false)
+  const { scenario, isSurgeActive, triggerSurge, resetSurge } = useEventSurge()
 
   const handleSimulate = () => {
     setSimulating(true)
-    setTimeout(() => setSimulating(false), 3000)
+    triggerSurge()
+    setTimeout(() => setSimulating(false), 2500)
   }
+
+  const actions = isSurgeActive && scenario
+    ? scenario.operatorActions.map((a, i) => ({
+        id: `surge-${i}`,
+        type: a.type,
+        action: a.action,
+        status: "completed" as const,
+        time: a.time,
+      }))
+    : defaultActions
 
   return (
     <div className="rounded-xl border border-border bg-card">
@@ -69,8 +72,13 @@ export function OperatorPanel() {
         {/* MCP Tools */}
         <div>
           <h4 className="mb-3 text-xs font-medium text-muted-foreground">MCP TOOLS AVAILABLE</h4>
+          {isSurgeActive && (
+            <p className="mb-2 text-xs text-amber-600 dark:text-amber-400">
+              Forecast adjusted: weather −50%, other sources 0. Lower demand signals.
+            </p>
+          )}
           <div className="space-y-2">
-            {mcpTools.map((tool) => (
+            {(isSurgeActive ? surgeMcpTools : baseMcpTools).map((tool) => (
               <div key={tool.name} className="flex items-center justify-between rounded-lg bg-secondary/30 px-3 py-2">
                 <div>
                   <span className="font-mono text-sm text-primary">{tool.name}()</span>
@@ -118,10 +126,22 @@ export function OperatorPanel() {
         </div>
 
         {/* Simulate Button */}
-        <Button onClick={handleSimulate} disabled={simulating} className="w-full gap-2">
-          <Play className="h-4 w-4" />
-          {simulating ? "Simulating Event Surge..." : "Simulate Event Surge"}
-        </Button>
+        {isSurgeActive ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>Event surge active: {scenario?.footTrafficDropPercent}% foot traffic drop simulated.</span>
+            </div>
+            <Button variant="outline" onClick={resetSurge} className="w-full gap-2">
+              Reset to Normal
+            </Button>
+          </div>
+        ) : (
+          <Button onClick={handleSimulate} disabled={simulating} className="w-full gap-2">
+            <Play className="h-4 w-4" />
+            {simulating ? "Simulating Event Surge..." : "Simulate Event Surge"}
+          </Button>
+        )}
       </div>
     </div>
   )
