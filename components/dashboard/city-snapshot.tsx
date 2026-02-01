@@ -38,6 +38,10 @@ export function CitySnapshot() {
     extra > 0 ? "up" : extra < 0 ? "down" : "neutral"
   const demandLevel =
     extra > baseline * 0.2 ? "High" : extra > 0 ? "Moderate" : "Low"
+  const confidenceTrend: "up" | "down" | "neutral" =
+    final_forecast.confidence > 0.8 ? "up" : final_forecast.confidence < 0.6 ? "down" : "neutral"
+  const confidenceSubtext =
+    final_forecast.confidence > 0.8 ? "High confidence" : final_forecast.confidence < 0.45 ? "Low confidence" : "Medium confidence"
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -58,9 +62,9 @@ export function CitySnapshot() {
       <MetricCard
         icon={<Target className="h-5 w-5" />}
         label="Prediction Confidence"
-        value={String(final_forecast.confidence)}
-        subtext="High confidence"
-        trend="neutral"
+        value={String(Math.round(final_forecast.confidence*100))+"%"}
+        subtext={confidenceSubtext}
+        trend={confidenceTrend}
       />
       <MetricCard
         icon={<Zap className="h-5 w-5" />}

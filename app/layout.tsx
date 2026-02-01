@@ -2,6 +2,7 @@ import React from "react"
 import type { Metadata } from 'next'
 import { Inter, Playfair_Display, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { EventSurgeProvider } from "@/components/event-surge-context"
 import './globals.css'
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -39,8 +40,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} font-sans antialiased`}>
-        {children}
-        <Analytics />
+        <EventSurgeProvider>
+          {children}
+          <Analytics />
+        </EventSurgeProvider>
       </body>
     </html>
   )

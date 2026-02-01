@@ -2,11 +2,46 @@ import { NextResponse } from "next/server"
 
 /**
  * Proxies to the MasterFootTrafficAgent backend.
- * The master agent is the single source of truth; sub-agents (weather, Google traffic, MTA)
- * are never called from the UI—only the backend runs them inside the master agent.
+ * Falls back to mock data when backend is unreachable (e.g. ECONNREFUSED).
  */
 const FOOT_TRAFFIC_API_URL =
   process.env.FOOT_TRAFFIC_API_URL || "http://localhost:8002"
+
+/** Mock forecast when backend is down — lets dashboard render without errors */
+const MOCK_FORECAST = {
+  baseline_customers_per_hour: 42,
+  signals: [
+    {
+      source: "weather_event",
+      extra_customers_per_hour: 3.2,
+      confidence: 0.75,
+      explanation: "Mild weather favors walk-in traffic.",
+    },
+    {
+      source: "google_traffic",
+      extra_customers_per_hour: -1.5,
+      confidence: 0.6,
+      explanation: "Moderate congestion; slight drag on foot traffic.",
+    },
+    {
+      source: "mta_subway",
+      extra_customers_per_hour: 2.0,
+      confidence: 0.7,
+      explanation: "Average subway busyness near station exits.",
+    },
+  ],
+  final_forecast: {
+    expected_extra_customers_per_hour: 2.5,
+    expected_total_customers_per_hour: 44.5,
+    confidence: 0.68,
+    summary: ["On par with usual"],
+  },
+  business_insights: [
+    "Weather is favorable—mild temps tend to bring more walk-in traffic.",
+    "Road congestion is moderate with slight drag on foot traffic.",
+    "Subway conditions are average near station exits.",
+  ],
+}
 
 export async function GET(request: Request) {
   try {
@@ -22,6 +57,7 @@ export async function GET(request: Request) {
     const url = `${FOOT_TRAFFIC_API_URL}/api/foot-traffic-forecast${qs ? `?${qs}` : ""}`
     const res = await fetch(url, {
       next: { revalidate: 60 },
+      signal: AbortSignal.timeout(8000),
     })
     if (!res.ok) {
       const text = await res.text()
@@ -34,6 +70,21 @@ export async function GET(request: Request) {
     return NextResponse.json(data)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
+    const cause = (err as { cause?: { code?: string } })?.cause
+    const code = typeof cause?.code === "string" ? cause.code : ""
+    // Backend unreachable (ECONNREFUSED, timeout, etc.) — return mock data so dashboard still works
+    if (
+      code === "ECONNREFUSED" ||
+      code === "ETIMEDOUT" ||
+      code === "ENOTFOUND" ||
+      message.toLowerCase().includes("fetch failed")
+    ) {
+      return NextResponse.json({
+        ...MOCK_FORECAST,
+        _fallback: true,
+        _message: `Backend unreachable. Using demo data. Start with: cd backend && uvicorn main:app --port 8002`,
+      })
+    }
     return NextResponse.json(
       {
         error: "Failed to fetch foot traffic forecast",

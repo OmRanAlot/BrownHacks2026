@@ -10,11 +10,16 @@ import time
 
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
-from langchain_google_genai import ChatGoogleGenerativeAI
+from openai import OpenAI
+
+load_dotenv()
 
 from agents.master_agent import MasterFootTrafficAgent
 
-load_dotenv()
+OPENROUTER_CLIENT = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.getenv("GEMINI_API_KEY"),
+)
 
 app = FastAPI(
     title="Foot Traffic Prediction API",
@@ -72,6 +77,29 @@ def _parse_start_time(start_time: Optional[str]) -> tuple[Optional[str], Optiona
 # Default baseline for dashboard; can be overridden by query params
 DEFAULT_BASELINE = 42.0
 
+# In-memory cache: key -> (expiry_timestamp, result). TTL = 30 minutes.
+_FORECAST_CACHE: Dict[str, tuple[float, Dict[str, Any]]] = {}
+_CACHE_TTL_SECONDS = 30 * 60
+
+
+def _cache_key(baseline: float, date: Optional[str], time: Optional[int]) -> str:
+    return f"{baseline}_{date or ''}_{time or ''}"
+
+
+def _get_cached(cache_key: str) -> Optional[Dict[str, Any]]:
+    now_ts = time.time()
+    if cache_key not in _FORECAST_CACHE:
+        return None
+    expiry, result = _FORECAST_CACHE[cache_key]
+    if now_ts >= expiry:
+        del _FORECAST_CACHE[cache_key]
+        return None
+    return result
+
+
+def _set_cached(cache_key: str, result: Dict[str, Any]) -> None:
+    _FORECAST_CACHE[cache_key] = (time.time() + _CACHE_TTL_SECONDS, result)
+
 
 def _generate_business_insights(result: Dict[str, Any]) -> List[str]:
     """
@@ -79,8 +107,7 @@ def _generate_business_insights(result: Dict[str, Any]) -> List[str]:
     the REASONING and RATIONALE behind the forecast. Does NOT repeat the high-level
     summary (that's already in the metric cards above).
     """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
+    if not os.getenv("GEMINI_API_KEY"):
         return []
 
     try:
@@ -123,9 +150,12 @@ RULES:
 - Output ONLY a JSON array of strings, one bullet per element. No other text.
 Example: ["Weather conditions are favorable today—mild temps tend to bring more walk-in traffic.", "Road traffic patterns suggest congestion flowing toward your area.", "Subway crowding near station exits may increase sidewalk foot traffic."]"""
 
-        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3)
-        msg = llm.invoke(prompt)
-        raw = getattr(msg, "content", str(msg)).strip()
+        response = OPENROUTER_CLIENT.chat.completions.create(
+            model="google/gemini-2.5-flash",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+        )
+        raw = (response.choices[0].message.content or "").strip()
 
         # Extract JSON array
         m = re.search(r"\[[\s\S]*\]", raw)
@@ -156,16 +186,26 @@ async def get_foot_traffic_forecast(
 ):
     """
     Dashboard endpoint: run MasterFootTrafficAgent and return baseline_customers_per_hour, signals, final_forecast.
-    Adds business_insights: LLM-generated plain-language bullets for business owners.
+    Caches results for 30 min to avoid re-running agents. Adds business_insights: LLM-generated bullets.
     """
     try:
         baseline_val = float(baseline) if baseline is not None else DEFAULT_BASELINE
+        key = _cache_key(baseline_val, date, time)
+
+        # Return cached if valid
+        cached = _get_cached(key)
+        if cached is not None:
+            return cached
+
+        # Run agents
         agent = MasterFootTrafficAgent(baseline_customers_per_hour=baseline_val)
         result = await agent.run(date=date, time=time)
         # Generate business-friendly bullets (runs in thread pool to avoid blocking)
         insights = await asyncio.to_thread(_generate_business_insights, result)
         if insights:
             result["business_insights"] = insights
+
+        _set_cached(key, result)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
