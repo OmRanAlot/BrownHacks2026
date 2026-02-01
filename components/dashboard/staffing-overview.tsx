@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Check, Clock, UserPlus } from "lucide-react"
+import { Check, Clock, UserPlus, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 type StaffMember = {
@@ -20,7 +20,7 @@ const initialStaff: StaffMember[] = [
   { id: "5", name: "Jordan Lee", role: "Support", shift: "5pm - 10pm", status: "pending" },
 ]
 
-export function StaffingOverview() {
+export function StaffingOverview({ showPrintButton = false }: { showPrintButton?: boolean }) {
   const [staff, setStaff] = useState(initialStaff)
   const [approved, setApproved] = useState(false)
 
@@ -86,6 +86,14 @@ export function StaffingOverview() {
           </tbody>
         </table>
       </div>
+      {showPrintButton && (
+        <div className="mt-4 flex justify-end border-t border-border pt-4">
+          <Button variant="outline" size="sm" className="gap-2">
+            <Printer className="h-4 w-4" />
+            Print Schedule
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
@@ -95,7 +103,7 @@ function StatusBadge({ status }: { status: StaffMember["status"] }) {
     confirmed: {
       icon: Check,
       label: "Confirmed",
-      className: "bg-accent/10 text-accent",
+      className: "bg-success/10 text-success",
     },
     pending: {
       icon: Clock,

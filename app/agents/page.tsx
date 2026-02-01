@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react"
 import { OrchestratorPanel } from "@/components/agents/orchestrator-panel"
 import { PredictorPanel } from "@/components/agents/predictor-panel"
 import { OperatorPanel } from "@/components/agents/operator-panel"
+import { HeaderUser } from "@/components/header-user"
 
 export default function AgentsPage() {
   return (
@@ -21,12 +22,15 @@ export default function AgentsPage() {
               <p className="text-sm text-muted-foreground">Multi-agent system status</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-full bg-accent/10 px-3 py-1.5">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-            </span>
-            <span className="text-xs font-medium text-accent">System Online</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 rounded-full bg-accent/10 px-3 py-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+              </span>
+              <span className="text-xs font-medium text-accent">System Online</span>
+            </div>
+            <HeaderUser />
           </div>
         </div>
       </header>

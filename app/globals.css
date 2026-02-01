@@ -19,7 +19,7 @@
   --secondary: oklch(0.18 0.005 250);
   --secondary-foreground: oklch(0.9 0.01 90);
   --muted: oklch(0.22 0.005 250);
-  --muted-foreground: oklch(0.55 0.01 90);
+  --muted-foreground: oklch(0.95 0.01 90);
   /* Subtle accent */
   --accent: oklch(0.75 0.12 75);
   --accent-foreground: oklch(0.12 0.005 250);
@@ -83,6 +83,7 @@
   --sidebar-accent-foreground: oklch(0.95 0.01 90);
   --sidebar-border: oklch(0.25 0.005 250);
   --sidebar-ring: oklch(0.75 0.12 75);
+  
 }
 
 @theme inline {
@@ -105,9 +106,13 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -132,6 +137,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    font-family: var(--font-sans), system-ui, sans-serif;
   }
 }

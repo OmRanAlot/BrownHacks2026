@@ -4,14 +4,14 @@ import React from "react"
 
 export function EcosystemSection() {
   return (
-    <section className="relative border-t border-border py-32">
+    <section className="relative z-10 border-t border-border bg-background/80 py-32 backdrop-blur-[2px]">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-20 text-center">
           <span className="mb-6 block font-mono text-xs tracking-[0.3em] text-primary">
             THE ECOSYSTEM
           </span>
           <h2 className="font-serif text-4xl leading-tight text-foreground md:text-5xl lg:text-6xl">
-            One Platform to <em className="italic text-primary">Rule</em> Them All
+            One Platform for <em className="italic text-primary">All</em> Businesses
           </h2>
         </div>
         
@@ -45,37 +45,18 @@ export function EcosystemSection() {
             </div>
           </div>
           
-          {/* Floating capability cards */}
-          <div className="absolute left-0 top-1/4 -translate-x-4 lg:translate-x-0">
+          {/* Floating capability cards - spaced further apart horizontally and vertically */}
+          <div className="absolute left-0 top-[10%] -translate-x-8 lg:-translate-x-16">
             <CapabilityCard category="VISION AI" title="City Awareness" />
           </div>
-          <div className="absolute right-0 top-1/4 translate-x-4 lg:translate-x-0">
+          <div className="absolute right-0 top-[10%] translate-x-8 lg:translate-x-16">
             <CapabilityCard category="ANALYTICS" title="Demand Forecast" />
           </div>
-          <div className="absolute bottom-1/4 left-0 -translate-x-4 lg:translate-x-0">
+          <div className="absolute bottom-[10%] left-0 -translate-x-8 lg:-translate-x-16">
             <CapabilityCard category="OPERATIONS" title="Staff Efficiency" />
           </div>
-          <div className="absolute bottom-1/4 right-0 translate-x-4 lg:translate-x-0">
+          <div className="absolute bottom-[10%] right-0 translate-x-8 lg:translate-x-16">
             <CapabilityCard category="REVENUE" title="Optimization" />
-          </div>
-        </div>
-        
-        {/* MCP Tools */}
-        <div className="mx-auto max-w-3xl rounded-sm border border-border bg-card/50 p-8">
-          <div className="flex flex-col items-center gap-6 text-center md:flex-row md:text-left">
-            <div className="flex-1">
-              <span className="mb-2 block font-mono text-xs tracking-[0.2em] text-primary">
-                MCP COMPATIBLE
-              </span>
-              <p className="text-sm text-muted-foreground">
-                All agents expose tools via the Model Context Protocol for seamless AI integration
-              </p>
-            </div>
-            <div className="flex flex-wrap justify-center gap-2">
-              <CodeBadge>schedule_shift()</CodeBadge>
-              <CodeBadge>send_notification()</CodeBadge>
-              <CodeBadge>place_order()</CodeBadge>
-            </div>
           </div>
         </div>
       </div>
@@ -94,10 +75,3 @@ function CapabilityCard({ category, title }: { category: string; title: string }
   )
 }
 
-function CodeBadge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-sm border border-border bg-secondary px-3 py-1.5 font-mono text-xs text-foreground">
-      {children}
-    </span>
-  )
-}

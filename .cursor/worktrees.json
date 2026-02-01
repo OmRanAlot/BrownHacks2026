@@ -1,0 +1,14 @@
+{
+  "setup-worktree": [
+    "npm install",
+    "pip ins"
+  ],
+  "setup-worktree-backend": [
+    "cd backend",
+    "pip install -r requirements.txt"
+  ],
+  "setup-worktree-frontend": [
+    "cd frontend",
+    "npm install"
+  ]
+}
