@@ -2,7 +2,7 @@
 
 export function VisionSection() {
   return (
-    <section className="relative border-t border-border py-32">
+    <section id="ai-physical-world" className="relative z-10 border-t border-border bg-background/80 py-32 backdrop-blur-[2px] scroll-mt-20">
       <div className="mx-auto max-w-7xl px-6">
         <div className="grid gap-16 lg:grid-cols-2 lg:gap-24">
           {/* Left: Content */}
@@ -12,7 +12,7 @@ export function VisionSection() {
             </span>
             
             <h2 className="mb-8 font-serif text-4xl leading-tight text-foreground md:text-5xl">
-              AI for the <em className="italic">Physical</em> World
+              AI for the <em className="italic">Physical</em>&nbsp;World
             </h2>
             
             <p className="mb-12 text-lg leading-relaxed text-muted-foreground">
@@ -49,7 +49,7 @@ export function VisionSection() {
               <div className="p-4">
                 <div className="mb-6 flex items-center justify-between">
                   <span className="font-mono text-xs tracking-widest text-muted-foreground">
-                    ZONE 1 • MAIN AREA
+                    JANUARY 2026
                   </span>
                   <span className="flex items-center gap-2 text-xs text-chart-2">
                     <span className="h-2 w-2 rounded-full bg-chart-2" />
@@ -57,27 +57,51 @@ export function VisionSection() {
                   </span>
                 </div>
                 
-                {/* Grid of zones */}
-                <div className="grid grid-cols-4 gap-2">
+                {/* Grid of zones — first date (01) starts in column 5 */}
+                <div className="grid grid-cols-7 gap-2">
                   {[
-                    { id: "01", status: "empty" },
-                    { id: "02", status: "occupied" },
-                    { id: "03", status: "occupied" },
-                    { id: "04", status: "occupied" },
-                    { id: "05", status: "empty" },
-                    { id: "06", status: "warning" },
-                    { id: "07", status: "occupied" },
-                    { id: "08", status: "empty" },
+                    ...Array(4).fill(null).map((_, i) => ({ id: `pad-${i}`, status: "pad" as const })),
+                    { id: "01", status: "empty" as const },
+                    { id: "02", status: "empty" as const },
+                    { id: "03", status: "occupied" as const },
+                    { id: "04", status: "warning" as const },
+                    { id: "05", status: "warning" as const },
+                    { id: "06", status: "empty" as const },
+                    { id: "07", status: "empty" as const },
+                    { id: "08", status: "empty" as const },
+                    { id: "09", status: "occupied" as const },
+                    { id: "10", status: "empty" as const },
+                    { id: "11", status: "occupied" as const },
+                    { id: "12", status: "warning" as const },
+                    { id: "13", status: "warning" as const },
+                    { id: "14", status: "empty" as const },
+                    { id: "15", status: "empty" as const },
+                    { id: "16", status: "warning" as const },
+                    { id: "17", status: "warning" as const },
+                    { id: "18", status: "occupied" as const },
+                    { id: "19", status: "occupied" as const },
+                    { id: "20", status: "empty" as const },
+                    { id: "21", status: "empty" as const },
+                    { id: "22", status: "warning" as const },
+                    { id: "23", status: "empty" as const },
+                    { id: "24", status: "occupied" as const },
+                    { id: "25", status: "occupied" as const },
+                    { id: "26", status: "empty" as const },
+                    { id: "27", status: "warning" as const },
+                    { id: "28", status: "occupied" as const },
+                    { id: "29", status: "empty" as const },
+                    { id: "30", status: "warning" as const },
+                    { id: "31", status: "occupied" as const },
                   ].map((zone) => (
                     <ZoneCard key={zone.id} {...zone} />
                   ))}
                 </div>
                 
-                {/* Legend */}
+                {/* Legend: Slow, Normal, Busy — all with circle indicators, Normal = amber/warning */}
                 <div className="mt-6 flex items-center gap-6">
-                  <LegendItem color="bg-chart-2" label="Available" />
+                  <LegendItem color="bg-chart-2" label="Slow" />
+                  <LegendItem color="bg-warning" label="Normal" />
                   <LegendItem color="bg-destructive" label="Busy" />
-                  <LegendItem color="bg-warning" label="Peak Soon" />
                 </div>
               </div>
             </div>
@@ -102,8 +126,11 @@ function ZoneCard({ id, status }: { id: string; status: string }) {
     empty: "bg-chart-2",
     occupied: "bg-destructive",
     warning: "bg-warning",
+    pad: "transparent",
   }
-  
+  if (status === "pad") {
+    return <div className="aspect-square rounded-sm border border-transparent" aria-hidden />
+  }
   return (
     <div className="relative aspect-square rounded-sm border border-border bg-secondary/50">
       <span className="absolute left-2 top-2 font-mono text-xs italic text-muted-foreground">
