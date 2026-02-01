@@ -10,7 +10,7 @@ type AgentAction = {
   timestamp: string
 }
 
-const initialActions: AgentAction[] = [
+const overviewActions: AgentAction[] = [
   {
     id: "1",
     agent: "predictor",
@@ -43,6 +43,54 @@ const initialActions: AgentAction[] = [
   },
 ]
 
+const staffingActions: AgentAction[] = [
+  {
+    id: "1",
+    agent: "orchestrator",
+    message: "Suggested adding 1 shift (4–9pm)",
+    timestamp: "2 min ago",
+  },
+  {
+    id: "2",
+    agent: "operator",
+    message: "Rebalanced schedule for evening rush",
+    timestamp: "2 min ago",
+  },
+  {
+    id: "3",
+    agent: "operator",
+    message: "Added 1 barista shift (4-9pm)",
+    timestamp: "1 min ago",
+  },
+  {
+    id: "4",
+    agent: "operator",
+    message: "Sent SMS to on-call staff",
+    timestamp: "1 min ago",
+  },
+]
+
+const inventoryActions: AgentAction[] = [
+  {
+    id: "1",
+    agent: "operator",
+    message: "Placed coffee bean order (+25%)",
+    timestamp: "2 min ago",
+  },
+  {
+    id: "2",
+    agent: "orchestrator",
+    message: "Low stock alert: Napkins",
+    timestamp: "1 min ago",
+  },
+  {
+    id: "3",
+    agent: "operator",
+    message: "Restocked milk (+20 L)",
+    timestamp: "Just now",
+  },
+]
+
 const agentConfig = {
   predictor: {
     icon: Bot,
@@ -61,9 +109,22 @@ const agentConfig = {
   },
 }
 
-export function AgentActionFeed() {
-  const [actions, setActions] = useState(initialActions)
+type FeedVariant = "overview" | "staffing" | "inventory"
+
+const variantActions: Record<FeedVariant, AgentAction[]> = {
+  overview: overviewActions,
+  staffing: staffingActions,
+  inventory: inventoryActions,
+}
+
+export function AgentActionFeed({ variant = "overview" }: { variant?: FeedVariant } = {}) {
+  const [actions, setActions] = useState(variantActions[variant])
   const [isThinking, setIsThinking] = useState(false)
+
+  // Sync when tab (variant) changes
+  useEffect(() => {
+    setActions(variantActions[variant])
+  }, [variant])
 
   // Simulate agent thinking periodically
   useEffect(() => {

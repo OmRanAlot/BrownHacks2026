@@ -11,7 +11,7 @@ export function CitySnapshot() {
         icon={<TrendingUp className="h-5 w-5" />}
         label="Predicted Foot Traffic"
         value="+18%"
-        subtext="vs average"
+        subtext="vs. Average"
         trend="up"
       />
       <MetricCard
@@ -32,7 +32,7 @@ export function CitySnapshot() {
         icon={<Zap className="h-5 w-5" />}
         label="Primary Driver"
         value="Concert"
-        subtext="+ clear weather"
+        subtext="+ Clear weather"
         trend="neutral"
       />
     </div>
