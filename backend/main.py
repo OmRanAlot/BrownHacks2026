@@ -83,7 +83,9 @@ _CACHE_TTL_SECONDS = 30 * 60
 
 
 def _cache_key(baseline: float, date: Optional[str], time: Optional[int]) -> str:
-    return f"{baseline}_{date or ''}_{time or ''}"
+    date_part = date or ""
+    time_part = "" if time is None else str(time)
+    return f"{baseline}_{date_part}_{time_part}"
 
 
 def _get_cached(cache_key: str) -> Optional[Dict[str, Any]]:
