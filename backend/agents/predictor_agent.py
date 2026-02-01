@@ -130,21 +130,47 @@ def _run_prediction(query_text, top_k=3):
         historical_context += f"- Past Record: {emb} | ACTUAL TRAFFIC: {traffic}\n"
 
     prompt = f"""
-You are an NYC Foot Traffic AI. Predict traffic for the 'Target' based on 'History'.
+        You are a specialized NYC foot traffic prediction agent for small businesses (especially cafes).
 
-HISTORY:
-{historical_context if historical_context else "No direct history found. Use NYC logic."}
+        Your task is to estimate expected foot traffic for a TARGET time window using:
+        - Retrieved historical records (if any)
+        - Weather conditions
+        - Nearby events
+        - Common NYC pedestrian behavior
 
-TARGET EVENT:
-{query_text}
+        IMPORTANT RULES:
+        - If HISTORY exists, anchor your estimate to similar past records.
+        - If HISTORY is sparse or missing, use NYC common-sense reasoning.
+        - Weather and major events should have a measurable impact.
+        - Assume foot traffic is the number of people likely to walk past or enter within the hour.
+        - Cafes are more sensitive to weather and events than offices.
 
-Return ONLY a JSON object:
-{{
-    "predicted_traffic": (number),
-    "reasoning": (one sentence explaining why based on weather/event),
-    "time": (time of the day)
-}}
-"""
+        WEIGHTING GUIDELINES (use implicitly):
+        - Major nearby event (concert/sports): +15–40%
+        - Light rain: −5–10%
+        - Heavy rain/snow/extreme cold: −15–35%
+        - Mild weather (60–75°F): +5–15%
+        - Evening hours (5–8 PM): generally higher traffic
+        - Winter reduces baseline foot traffic unless events offset it
+
+        HISTORY (examples of similar past conditions):
+        {historical_context if historical_context else "No close historical matches found."}
+
+        TARGET CONTEXT:
+        {query_text}
+
+        OUTPUT REQUIREMENTS:
+        Return ONLY valid JSON (no markdown, no extra text).
+
+        Schema:
+        {{
+        "predicted_traffic": number,        // estimated people for this hour
+        "confidence": number,               // float between 0 and 1
+        "reasoning": string,                // ONE concise sentence
+        "time": string                      // hour of day, e.g. "18:00"
+        }}
+        """
+
     response = client.chat.completions.create(
         model="google/gemini-3-flash-preview",
         messages=[{"role": "user", "content": prompt}],
@@ -171,9 +197,14 @@ def predict_for_datetime(date=None, time=None, borough="Manhattan", business_typ
     Returns:
         dict with keys: predicted_traffic, reasoning, time, query_text, target_datetime.
     """
+    
     query_text, target_dt = _build_query_text_from_datetime(
         date=date, time=time, borough=borough, business_type=business_type, **kwargs
     )
+
+
+
+
     payload, raw = _run_prediction(query_text)
     return {
         "predicted_traffic": payload.get("predicted_traffic"),
@@ -215,5 +246,5 @@ def predict_missing_metrics(target_ids):
 # predict_for_datetime(time="14:30")  # today at 2:30 PM
 # predict_for_datetime(date="2026-02-01")  # tomorrow, default hour
 if __name__ == "__main__":
-    result = predict_for_datetime(date="2026-01-31", time=18)
+    result = predict_for_datetime(date="2026-02-01", time=9)
     print(json.dumps(result, indent=2))
