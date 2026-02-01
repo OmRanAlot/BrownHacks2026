@@ -1,0 +1,924 @@
+{
+    "metadata": {
+        "timestamp": "2026-02-01T00:25:04Z",
+        "target_location": "1873 Broadway, NY",
+        "hack_context": "BrownHacks2026_Predictive_Model"
+    },
+    "points_of_interest": [
+        {
+            "poi_name": "Cafe Aroma",
+            "input_coordinates": {
+                "lat": 40.7709,
+                "lon": -73.9818
+            },
+            "traffic_data": {
+                "frc": "FRC4",
+                "currentSpeed": 8,
+                "freeFlowSpeed": 8,
+                "currentTravelTime": 145,
+                "freeFlowTravelTime": 145,
+                "confidence": 1,
+                "roadClosure": false,
+                "coordinates": {
+                    "coordinate": [
+                        {
+                            "latitude": 40.76838080429807,
+                            "longitude": -73.98164531541562
+                        },
+                        {
+                            "latitude": 40.768470629580335,
+                            "longitude": -73.98182770562867
+                        },
+                        {
+                            "latitude": 40.76850414739306,
+                            "longitude": -73.981886714227
+                        },
+                        {
+                            "latitude": 40.7685336659073,
+                            "longitude": -73.98192828846675
+                        },
+                        {
+                            "latitude": 40.76856851678146,
+                            "longitude": -73.98195242834788
+                        },
+                        {
+                            "latitude": 40.768614159337616,
+                            "longitude": -73.98196583939296
+                        },
+                        {
+                            "latitude": 40.76866373765586,
+                            "longitude": -73.98197522712451
+                        },
+                        {
+                            "latitude": 40.76877641551436,
+                            "longitude": -73.9819899792741
+                        },
+                        {
+                            "latitude": 40.768894425528586,
+                            "longitude": -73.98200204921467
+                        },
+                        {
+                            "latitude": 40.76944162360879,
+                            "longitude": -73.98200070811016
+                        },
+                        {
+                            "latitude": 40.76968703604059,
+                            "longitude": -73.98200070811016
+                        },
+                        {
+                            "latitude": 40.77051048778932,
+                            "longitude": -73.98201546025975
+                        },
+                        {
+                            "latitude": 40.77133119977993,
+                            "longitude": -73.98203289461834
+                        },
+                        {
+                            "latitude": 40.772176149921414,
+                            "longitude": -73.98207178664909
+                        },
+                        {
+                            "latitude": 40.772614648847316,
+                            "longitude": -73.98208385658965
+                        },
+                        {
+                            "latitude": 40.77279974683048,
+                            "longitude": -73.98208653879867
+                        },
+                        {
+                            "latitude": 40.77287617259629,
+                            "longitude": -73.98208653879867
+                        },
+                        {
+                            "latitude": 40.77298078180766,
+                            "longitude": -73.98208519769416
+                        }
+                    ]
+                },
+                "@version": "4"
+            }
+        },
+        {
+            "poi_name": "Lincoln Center / W 64th St",
+            "input_coordinates": {
+                "lat": 40.7725,
+                "lon": -73.9835
+            },
+            "traffic_data": {
+                "frc": "FRC4",
+                "currentSpeed": 7,
+                "freeFlowSpeed": 11,
+                "currentTravelTime": 140,
+                "freeFlowTravelTime": 90,
+                "confidence": 1,
+                "roadClosure": false,
+                "coordinates": {
+                    "coordinate": [
+                        {
+                            "latitude": 40.77261598185933,
+                            "longitude": -73.98231989098302
+                        },
+                        {
+                            "latitude": 40.772542221821226,
+                            "longitude": -73.98237487626783
+                        },
+                        {
+                            "latitude": 40.77237191326213,
+                            "longitude": -73.98249959898706
+                        },
+                        {
+                            "latitude": 40.772299485971445,
+                            "longitude": -73.98255056095834
+                        },
+                        {
+                            "latitude": 40.771805949964936,
+                            "longitude": -73.98290461254838
+                        },
+                        {
+                            "latitude": 40.77172146131131,
+                            "longitude": -73.98296496225124
+                        },
+                        {
+                            "latitude": 40.77120513237383,
+                            "longitude": -73.98333778930439
+                        },
+                        {
+                            "latitude": 40.771111311661585,
+                            "longitude": -73.98340886784331
+                        },
+                        {
+                            "latitude": 40.77105900560482,
+                            "longitude": -73.98344239545601
+                        },
+                        {
+                            "latitude": 40.77059497798277,
+                            "longitude": -73.9837696249559
+                        },
+                        {
+                            "latitude": 40.77050775820198,
+                            "longitude": -73.98383131576325
+                        },
+                        {
+                            "latitude": 40.770456848204276,
+                            "longitude": -73.98386618448046
+                        },
+                        {
+                            "latitude": 40.770069245371474,
+                            "longitude": -73.98415049863611
+                        },
+                        {
+                            "latitude": 40.76985601841416,
+                            "longitude": -73.98430740786351
+                        },
+                        {
+                            "latitude": 40.76922566499754,
+                            "longitude": -73.9847553367691
+                        }
+                    ]
+                },
+                "@version": "4"
+            }
+        },
+        {
+            "poi_name": "Columbus Circle / 8th Ave",
+            "input_coordinates": {
+                "lat": 40.7681,
+                "lon": -73.9819
+            },
+            "traffic_data": {
+                "frc": "FRC4",
+                "currentSpeed": 4,
+                "freeFlowSpeed": 4,
+                "currentTravelTime": 24,
+                "freeFlowTravelTime": 24,
+                "confidence": 1,
+                "roadClosure": false,
+                "coordinates": {
+                    "coordinate": [
+                        {
+                            "latitude": 40.76838080429807,
+                            "longitude": -73.98164531541562
+                        },
+                        {
+                            "latitude": 40.76842371731025,
+                            "longitude": -73.9818142945836
+                        },
+                        {
+                            "latitude": 40.76842771659845,
+                            "longitude": -73.98188939643602
+                        },
+                        {
+                            "latitude": 40.768421051118025,
+                            "longitude": -73.9819564516614
+                        },
+                        {
+                            "latitude": 40.7684129890598,
+                            "longitude": -73.98201814246876
+                        },
+                        {
+                            "latitude": 40.76839286565043,
+                            "longitude": -73.98211201978431
+                        },
+                        {
+                            "latitude": 40.768360680878985,
+                            "longitude": -73.98219516826379
+                        }
+                    ]
+                },
+                "@version": "4"
+            }
+        },
+        {
+            "poi_name": "Apple Store Upper West Side",
+            "input_coordinates": {
+                "lat": 40.7744,
+                "lon": -73.9821
+            },
+            "traffic_data": {
+                "frc": "FRC4",
+                "currentSpeed": 9,
+                "freeFlowSpeed": 14,
+                "currentTravelTime": 162,
+                "freeFlowTravelTime": 103,
+                "confidence": 1,
+                "roadClosure": false,
+                "coordinates": {
+                    "coordinate": [
+                        {
+                            "latitude": 40.77298078180766,
+                            "longitude": -73.98208519769416
+                        },
+                        {
+                            "latitude": 40.773824314508275,
+                            "longitude": -73.98212543082938
+                        },
+                        {
+                            "latitude": 40.7742105624561,
+                            "longitude": -73.9821093375753
+                        },
+                        {
+                            "latitude": 40.774638384184826,
+                            "longitude": -73.9820919032167
+                        },
+                        {
+                            "latitude": 40.775434988520075,
+                            "longitude": -73.98205301118595
+                        },
+                        {
+                            "latitude": 40.776239644413096,
+                            "longitude": -73.98201814246876
+                        },
+                        {
+                            "latitude": 40.77705235157104,
+                            "longitude": -73.98197120381099
+                        },
+                        {
+                            "latitude": 40.77744131005438,
+                            "longitude": -73.98195242834788
+                        },
+                        {
+                            "latitude": 40.77778196421826,
+                            "longitude": -73.98192560625773
+                        },
+                        {
+                            "latitude": 40.777843595332826,
+                            "longitude": -73.98192292404872
+                        },
+                        {
+                            "latitude": 40.777976378137026,
+                            "longitude": -73.98190817189914
+                        },
+                        {
+                            "latitude": 40.77822855048531,
+                            "longitude": -73.98188000870447
+                        },
+                        {
+                            "latitude": 40.77827812162972,
+                            "longitude": -73.98184379888276
+                        },
+                        {
+                            "latitude": 40.77837605785365,
+                            "longitude": -73.98177003813483
+                        },
+                        {
+                            "latitude": 40.778604046222625,
+                            "longitude": -73.98160240007135
+                        }
+                    ]
+                },
+                "@version": "4"
+            }
+        },
+        {
+            "poi_name": "W 72nd St Subway Hub",
+            "input_coordinates": {
+                "lat": 40.7788,
+                "lon": -73.9823
+            },
+            "traffic_data": {
+                "frc": "FRC4",
+                "currentSpeed": 6,
+                "freeFlowSpeed": 9,
+                "currentTravelTime": 275,
+                "freeFlowTravelTime": 176,
+                "confidence": 1,
+                "roadClosure": false,
+                "coordinates": {
+                    "coordinate": [
+                        {
+                            "latitude": 40.77879579195949,
+                            "longitude": -73.98205703449948
+                        },
+                        {
+                            "latitude": 40.77854101944946,
+                            "longitude": -73.98210129094825
+                        },
+                        {
+                            "latitude": 40.778416298619305,
+                            "longitude": -73.98211872530685
+                        },
+                        {
+                            "latitude": 40.77833848285805,
+                            "longitude": -73.9821294541429
+                        },
+                        {
+                            "latitude": 40.77822988338469,
+                            "longitude": -73.98214286518798
+                        },
+                        {
+                            "latitude": 40.77794419800761,
+                            "longitude": -73.98217773390519
+                        },
+                        {
+                            "latitude": 40.77782487115884,
+                            "longitude": -73.98218712163674
+                        },
+                        {
+                            "latitude": 40.77750167204309,
+                            "longitude": -73.9821965093683
+                        },
+                        {
+                            "latitude": 40.777155621286,
+                            "longitude": -73.98221260262238
+                        },
+                        {
+                            "latitude": 40.776345581265794,
+                            "longitude": -73.98224210692157
+                        },
+                        {
+                            "latitude": 40.77553559484241,
+                            "longitude": -73.98228770447483
+                        },
+                        {
+                            "latitude": 40.77472826448272,
+                            "longitude": -73.98231452656498
+                        },
+                        {
+                            "latitude": 40.773908800487895,
+                            "longitude": -73.98234000755063
+                        },
+                        {
+                            "latitude": 40.77319806121485,
+                            "longitude": -73.98231720877399
+                        },
+                        {
+                            "latitude": 40.77307333035368,
+                            "longitude": -73.9823185498785
+                        },
+                        {
+                            "latitude": 40.77290029366692,
+                            "longitude": -73.98231989098302
+                        },
+                        {
+                            "latitude": 40.77261598185933,
+                            "longitude": -73.98231989098302
+                        }
+                    ]
+                },
+                "@version": "4"
+            }
+        },
+        {
+            "poi_name": "Museum of Natural History",
+            "input_coordinates": {
+                "lat": 40.7813,
+                "lon": -73.974
+            },
+            "traffic_data": {
+                "frc": "FRC4",
+                "currentSpeed": 6,
+                "freeFlowSpeed": 9,
+                "currentTravelTime": 229,
+                "freeFlowTravelTime": 152,
+                "confidence": 1,
+                "roadClosure": false,
+                "coordinates": {
+                    "coordinate": [
+                        {
+                            "latitude": 40.778604046222625,
+                            "longitude": -73.98160240007135
+                        },
+                        {
+                            "latitude": 40.77877300591778,
+                            "longitude": -73.98148438287468
+                        },
+                        {
+                            "latitude": 40.77892184496263,
+                            "longitude": -73.98137709451407
+                        },
+                        {
+                            "latitude": 40.779061353495884,
+                            "longitude": -73.98127785278048
+                        },
+                        {
+                            "latitude": 40.7792866737566,
+                            "longitude": -73.98111826134406
+                        },
+                        {
+                            "latitude": 40.77935776055354,
+                            "longitude": -73.981281876094
+                        },
+                        {
+                            "latitude": 40.779498537574995,
+                            "longitude": -73.98160508228037
+                        },
+                        {
+                            "latitude": 40.77969300993993,
+                            "longitude": -73.98155412030908
+                        },
+                        {
+                            "latitude": 40.7802415154159,
+                            "longitude": -73.98141062212676
+                        },
+                        {
+                            "latitude": 40.780985817790516,
+                            "longitude": -73.98119738651
+                        },
+                        {
+                            "latitude": 40.78170732678969,
+                            "longitude": -73.98096135211667
+                        },
+                        {
+                            "latitude": 40.78243022423389,
+                            "longitude": -73.98070117784215
+                        },
+                        {
+                            "latitude": 40.78311547805015,
+                            "longitude": -73.9803618784017
+                        },
+                        {
+                            "latitude": 40.78362511393486,
+                            "longitude": -73.98000246239361
+                        },
+                        {
+                            "latitude": 40.78380078826254,
+                            "longitude": -73.97987371636086
+                        }
+                    ]
+                },
+                "@version": "4"
+            }
+        },
+        {
+            "poi_name": "Central Park South / 7th Ave",
+            "input_coordinates": {
+                "lat": 40.7659,
+                "lon": -73.979
+            },
+            "traffic_data": {
+                "frc": "FRC4",
+                "currentSpeed": 7,
+                "freeFlowSpeed": 11,
+                "currentTravelTime": 40,
+                "freeFlowTravelTime": 24,
+                "confidence": 1,
+                "roadClosure": false,
+                "coordinates": {
+                    "coordinate": [
+                        {
+                            "latitude": 40.766733901295424,
+                            "longitude": -73.98287376714471
+                        },
+                        {
+                            "latitude": 40.76708660846816,
+                            "longitude": -73.9826310272288
+                        },
+                        {
+                            "latitude": 40.76725426433508,
+                            "longitude": -73.98251435113664
+                        },
+                        {
+                            "latitude": 40.76741252448319,
+                            "longitude": -73.98240572167151
+                        },
+                        {
+                            "latitude": 40.767719648396394,
+                            "longitude": -73.9821965093683
+                        }
+                    ]
+                },
+                "@version": "4"
+            }
+        },
+        {
+            "poi_name": "Times Square / Broadway",
+            "input_coordinates": {
+                "lat": 40.758,
+                "lon": -73.9855
+            },
+            "traffic_data": {
+                "frc": "FRC4",
+                "currentSpeed": 4,
+                "freeFlowSpeed": 6,
+                "currentTravelTime": 239,
+                "freeFlowTravelTime": 143,
+                "confidence": 1,
+                "roadClosure": false,
+                "coordinates": {
+                    "coordinate": [
+                        {
+                            "latitude": 40.76110531505816,
+                            "longitude": -73.98325866413843
+                        },
+                        {
+                            "latitude": 40.7608210162724,
+                            "longitude": -73.98345446539658
+                        },
+                        {
+                            "latitude": 40.7605514455547,
+                            "longitude": -73.98363953781865
+                        },
+                        {
+                            "latitude": 40.76047227561436,
+                            "longitude": -73.98369452310348
+                        },
+                        {
+                            "latitude": 40.759841960167215,
+                            "longitude": -73.98416390968119
+                        },
+                        {
+                            "latitude": 40.7594932778618,
+                            "longitude": -73.98440262628357
+                        },
+                        {
+                            "latitude": 40.75920090900551,
+                            "longitude": -73.98461049748227
+                        },
+                        {
+                            "latitude": 40.7585840414191,
+                            "longitude": -73.98507854295548
+                        },
+                        {
+                            "latitude": 40.75844322008275,
+                            "longitude": -73.98517376137552
+                        },
+                        {
+                            "latitude": 40.75796443800581,
+                            "longitude": -73.9855318362791
+                        }
+                    ]
+                },
+                "@version": "4"
+            }
+        },
+        {
+            "poi_name": "Port Authority Bus Terminal",
+            "input_coordinates": {
+                "lat": 40.7568,
+                "lon": -73.991
+            },
+            "traffic_data": {
+                "frc": "FRC4",
+                "currentSpeed": 4,
+                "freeFlowSpeed": 8,
+                "currentTravelTime": 384,
+                "freeFlowTravelTime": 177,
+                "confidence": 1,
+                "roadClosure": false,
+                "coordinates": {
+                    "coordinate": [
+                        {
+                            "latitude": 40.752193639595916,
+                            "longitude": -73.99346446944247
+                        },
+                        {
+                            "latitude": 40.752601347886795,
+                            "longitude": -73.99317076755528
+                        },
+                        {
+                            "latitude": 40.7526965916375,
+                            "longitude": -73.99309968901638
+                        },
+                        {
+                            "latitude": 40.75286288689917,
+                            "longitude": -73.99297630740166
+                        },
+                        {
+                            "latitude": 40.7531968095763,
+                            "longitude": -73.99274429632182
+                        },
+                        {
+                            "latitude": 40.75347980757347,
+                            "longitude": -73.99253642512312
+                        },
+                        {
+                            "latitude": 40.753790932543296,
+                            "longitude": -73.99231111956581
+                        },
+                        {
+                            "latitude": 40.75410338944057,
+                            "longitude": -73.99208044959047
+                        },
+                        {
+                            "latitude": 40.75471763186249,
+                            "longitude": -73.99164459062546
+                        },
+                        {
+                            "latitude": 40.755330535250785,
+                            "longitude": -73.99119263840635
+                        },
+                        {
+                            "latitude": 40.75594336949608,
+                            "longitude": -73.99073263956019
+                        },
+                        {
+                            "latitude": 40.75602787820954,
+                            "longitude": -73.99066960764831
+                        },
+                        {
+                            "latitude": 40.75607886275335,
+                            "longitude": -73.99063205672209
+                        },
+                        {
+                            "latitude": 40.75657105524248,
+                            "longitude": -73.99026459408697
+                        },
+                        {
+                            "latitude": 40.756627372700784,
+                            "longitude": -73.99022436095174
+                        },
+                        {
+                            "latitude": 40.75672661067641,
+                            "longitude": -73.99015462351734
+                        },
+                        {
+                            "latitude": 40.75724025848311,
+                            "longitude": -73.98979923082278
+                        }
+                    ]
+                },
+                "@version": "4"
+            }
+        },
+        {
+            "poi_name": "West Side Highway at 57th St",
+            "input_coordinates": {
+                "lat": 40.772,
+                "lon": -73.993
+            },
+            "traffic_data": {
+                "frc": "FRC1",
+                "currentSpeed": 44,
+                "freeFlowSpeed": 44,
+                "currentTravelTime": 65,
+                "freeFlowTravelTime": 65,
+                "confidence": 1,
+                "roadClosure": false,
+                "coordinates": {
+                    "coordinate": [
+                        {
+                            "latitude": 40.771559212325826,
+                            "longitude": -73.99419671250372
+                        },
+                        {
+                            "latitude": 40.77165042982064,
+                            "longitude": -73.99415379715947
+                        },
+                        {
+                            "latitude": 40.77173358553489,
+                            "longitude": -73.99410954071072
+                        },
+                        {
+                            "latitude": 40.77179522226053,
+                            "longitude": -73.9940746719935
+                        },
+                        {
+                            "latitude": 40.77189450106813,
+                            "longitude": -73.99400761676813
+                        },
+                        {
+                            "latitude": 40.7721063884618,
+                            "longitude": -73.99385338974973
+                        },
+                        {
+                            "latitude": 40.77220027124616,
+                            "longitude": -73.99378633452434
+                        },
+                        {
+                            "latitude": 40.77229142438384,
+                            "longitude": -73.99372062040347
+                        },
+                        {
+                            "latitude": 40.77283059644421,
+                            "longitude": -73.9933276767827
+                        },
+                        {
+                            "latitude": 40.77299017631613,
+                            "longitude": -73.993209659586
+                        },
+                        {
+                            "latitude": 40.77331339738042,
+                            "longitude": -73.99297898961068
+                        },
+                        {
+                            "latitude": 40.77338176110001,
+                            "longitude": -73.99293339205741
+                        },
+                        {
+                            "latitude": 40.773776073029175,
+                            "longitude": -73.99266651226037
+                        },
+                        {
+                            "latitude": 40.77440371732549,
+                            "longitude": -73.99226820422156
+                        },
+                        {
+                            "latitude": 40.774886506830285,
+                            "longitude": -73.99194902134873
+                        },
+                        {
+                            "latitude": 40.77510511296721,
+                            "longitude": -73.99179613543484
+                        },
+                        {
+                            "latitude": 40.7751935961991,
+                            "longitude": -73.99173042131395
+                        },
+                        {
+                            "latitude": 40.77569923054162,
+                            "longitude": -73.99136429978334
+                        },
+                        {
+                            "latitude": 40.77574747062427,
+                            "longitude": -73.99132943106612
+                        },
+                        {
+                            "latitude": 40.7765709107382,
+                            "longitude": -73.99073263956019
+                        },
+                        {
+                            "latitude": 40.77721065185526,
+                            "longitude": -73.99025922966894
+                        },
+                        {
+                            "latitude": 40.77751506465351,
+                            "longitude": -73.99003392411163
+                        },
+                        {
+                            "latitude": 40.77763039332475,
+                            "longitude": -73.98995211673666
+                        },
+                        {
+                            "latitude": 40.77819497410659,
+                            "longitude": -73.98954039765279
+                        },
+                        {
+                            "latitude": 40.77847526335647,
+                            "longitude": -73.9893365497676
+                        },
+                        {
+                            "latitude": 40.77872743381093,
+                            "longitude": -73.98915550065905
+                        },
+                        {
+                            "latitude": 40.779410060076955,
+                            "longitude": -73.98866063309569
+                        },
+                        {
+                            "latitude": 40.77949720470106,
+                            "longitude": -73.98859760118384
+                        },
+                        {
+                            "latitude": 40.77956429265502,
+                            "longitude": -73.98854663921253
+                        },
+                        {
+                            "latitude": 40.77973997772337,
+                            "longitude": -73.98841386986628
+                        },
+                        {
+                            "latitude": 40.77977748845627,
+                            "longitude": -73.9883857066716
+                        },
+                        {
+                            "latitude": 40.77982578904735,
+                            "longitude": -73.98835486126792
+                        },
+                        {
+                            "latitude": 40.780043046068016,
+                            "longitude": -73.98818990541348
+                        },
+                        {
+                            "latitude": 40.780189216547114,
+                            "longitude": -73.98807859373933
+                        },
+                        {
+                            "latitude": 40.7803823540338,
+                            "longitude": -73.98792034340741
+                        },
+                        {
+                            "latitude": 40.78047083023676,
+                            "longitude": -73.987847923764
+                        },
+                        {
+                            "latitude": 40.780670694625904,
+                            "longitude": -73.98766821575995
+                        },
+                        {
+                            "latitude": 40.7808168637238,
+                            "longitude": -73.98753142310015
+                        },
+                        {
+                            "latitude": 40.781009999385496,
+                            "longitude": -73.98734232736457
+                        },
+                        {
+                            "latitude": 40.781475350569224,
+                            "longitude": -73.98688366962293
+                        },
+                        {
+                            "latitude": 40.78155309918757,
+                            "longitude": -73.98680856777048
+                        },
+                        {
+                            "latitude": 40.78168720740678,
+                            "longitude": -73.98669591499181
+                        }
+                    ]
+                },
+                "@version": "4"
+            }
+        },
+        {
+            "poi_name": "Rockefeller Center",
+            "input_coordinates": {
+                "lat": 40.7587,
+                "lon": -73.9787
+            },
+            "traffic_data": {
+                "frc": "FRC4",
+                "currentSpeed": 4,
+                "freeFlowSpeed": 6,
+                "currentTravelTime": 239,
+                "freeFlowTravelTime": 143,
+                "confidence": 1,
+                "roadClosure": false,
+                "coordinates": {
+                    "coordinate": [
+                        {
+                            "latitude": 40.76110531505816,
+                            "longitude": -73.98325866413843
+                        },
+                        {
+                            "latitude": 40.7608210162724,
+                            "longitude": -73.98345446539658
+                        },
+                        {
+                            "latitude": 40.7605514455547,
+                            "longitude": -73.98363953781865
+                        },
+                        {
+                            "latitude": 40.76047227561436,
+                            "longitude": -73.98369452310348
+                        },
+                        {
+                            "latitude": 40.759841960167215,
+                            "longitude": -73.98416390968119
+                        },
+                        {
+                            "latitude": 40.7594932778618,
+                            "longitude": -73.98440262628357
+                        },
+                        {
+                            "latitude": 40.75920090900551,
+                            "longitude": -73.98461049748227
+                        },
+                        {
+                            "latitude": 40.7585840414191,
+                            "longitude": -73.98507854295548
+                        },
+                        {
+                            "latitude": 40.75844322008275,
+                            "longitude": -73.98517376137552
+                        },
+                        {
+                            "latitude": 40.75796443800581,
+                            "longitude": -73.9855318362791
+                        }
+                    ]
+                },
+                "@version": "4"
+            }
+        }
+    ]
+}
