@@ -79,7 +79,10 @@ export function DashboardTabs() {
 function OverviewContent() {
   return (
     <>
-      <CitySnapshot />
+      <BusynessCard busynessRating={3.3} />
+      <div className="mt-4">
+        <CitySnapshot />
+      </div>
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <FootTrafficChart />
