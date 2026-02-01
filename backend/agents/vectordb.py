@@ -192,41 +192,52 @@ class MongoVectorDB:
         return str(result.inserted_id)
     
     def add_events_bulk(self, events: List[Dict]) -> List:
-        """
-        Add multiple events to the database.
-        Handles your existing event format.
-        """
-        print(f"\n📍 Adding {len(events)} events to database...")
-
-        # Transform events to the format we need (mutate in place or build list)
-        for event in events:
-            if 'latitude' in event and 'longitude' in event:
-                event['location'] = {
-                    "type": "Point",
-                    "coordinates": [
-                        float(event['longitude']),
-                        float(event['latitude'])
-                    ]
-                }
-            if 'event_name' in event and 'name' not in event:
-                event['name'] = event['event_name']
-            if 'event_borough' in event and 'borough' not in event:
-                event['borough'] = event['event_borough']
-            if 'start_date_time' in event and 'start_time' not in event:
-                if isinstance(event['start_date_time'], str):
-                    from dateutil import parser
-                    event['start_time'] = parser.parse(event['start_date_time'])
-                else:
-                    event['start_time'] = event['start_date_time']
-            if 'start_time' in event and 'end_time' not in event:
-                from datetime import timedelta
-                event['end_time'] = event['start_time'] + timedelta(hours=3)
-
-        # Insert once after all events have been transformed
+    """
+    Add multiple events to the database
+    Handles your existing event format
+    """
+    print(f"\n📍 Adding {len(events)} events to database...")
+    
+    # Transform your events to the format we need
+    for event in events:
+        # Your events have latitude/longitude as separate fields
+        # We need to convert to GeoJSON format
+        if 'latitude' in event and 'longitude' in event:
+            event['location'] = {
+                "type": "Point",
+                "coordinates": [
+                    float(event['longitude']),  # longitude first!
+                    float(event['latitude'])
+                ]
+            }
+        
+        # Rename fields to match our system (optional, for consistency)
+        if 'event_name' in event and 'name' not in event:
+            event['name'] = event['event_name']
+        
+        if 'event_borough' in event and 'borough' not in event:
+            event['borough'] = event['event_borough']
+        
+        if 'start_date_time' in event and 'start_time' not in event:
+            # Convert string to datetime if needed
+            if isinstance(event['start_date_time'], str):
+                from dateutil import parser
+                event['start_time'] = parser.parse(event['start_date_time'])
+            else:
+                event['start_time'] = event['start_date_time']
+        
+        # Add end_time if not present (estimate 3 hours)
+        if 'start_time' in event and 'end_time' not in event:
+            from datetime import timedelta
+            event['end_time'] = event['start_time'] + timedelta(hours=3)
+    
         result = self.events.insert_many(events)
         print(f"✓ Inserted {len(result.inserted_ids)} events")
-        return result.inserted_ids
 
+
+
+        
+        return result.inserted_ids
     def add_business(self, business_data: Dict) -> str:
         """
         Add a business to the database
