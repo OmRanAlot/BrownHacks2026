@@ -55,14 +55,14 @@ export function LandingNav() {
       />
       <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
         <Link href="/" className="flex min-w-0 shrink-0 items-center scale-105 origin-left">
-          <Image
-            src="/placeholder-logo.png"
-            alt="Logo"
-            width={120}
-            height={40}
-            className="h-10 w-auto object-contain"
-            priority
-          />
+<Image
+              src="/logo.png"
+              alt="Clarity"
+              width={30}
+              height={10}
+              className="h-40 w-auto object-contain sm:h-48"
+              priority
+            />
         </Link>
         <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-10 md:flex">
           <Link

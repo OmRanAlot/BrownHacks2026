@@ -9,7 +9,7 @@ const _playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playf
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'CityFootfall AI - Smarter Staffing for Busy Cities',
+  title: 'Clarity AI',
   description: 'Turn city chaos into staffing clarity. Predict foot traffic using weather, events, and maps data - then automatically act.',
   generator: 'v0.app',
   icons: {
