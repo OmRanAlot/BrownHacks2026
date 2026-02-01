@@ -9,9 +9,11 @@ from pydantic import BaseModel, Field, ValidationError
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 dotenv.load_dotenv()
-DATASET_PATH = "detailed_cafe_congestion.json"
+DATASET_PATH = os.path.join(os.path.dirname(__file__), "detailed_cafe_congestion.json")
 
 GEMINI_MODEL = "gemini-2.5-flash"  # fast + great for hackathon
 
@@ -156,10 +158,14 @@ class ExtraCustomersOut(BaseModel):
 # ✅ IMPORTANT: escaped braces with {{ and }}
 PROMPT = ChatPromptTemplate.from_messages([
     ("system",
-     "You are a forecasting assistant for a cafe. "
-     "You must output ONLY valid JSON (no markdown, no extra text). "
-     "Be conservative. If signals are weak or missing, predict near 0 extra customers.\n\n"
-     "Return JSON with exactly these keys:\n"
+     "You are a specialized Google Traffic interpretation agent for a SINGLE, fixed NYC cafe location.\n"
+     "Your job is to estimate how nearby road congestion affects walk-in customers per hour.\n\n"
+     "You MUST output ONLY valid JSON (no markdown, no commentary).\n\n"
+     "Think causally:\n"
+     "- Traffic does NOT equal customers by default.\n"
+     "- Only congestion that increases pedestrian exposure or delays people NEAR the cafe increases walk-ins.\n"
+     "- Direction matters more than raw congestion.\n\n"
+     "Return JSON with EXACTLY these keys:\n"
      "{{\n"
      '  "expected_extra_customers_per_hour": number,\n'
      '  "confidence_0_to_1": number,\n'
@@ -167,14 +173,24 @@ PROMPT = ChatPromptTemplate.from_messages([
      '  "cautions": string[]\n'
      "}}\n"),
     ("user",
-     "Baseline customers/hour (anchor): {baseline}\n\n"
-     "Traffic features JSON:\n{features}\n\n"
-     "Rules:\n"
-     "- Congestion alone doesn't guarantee more customers.\n"
-     "- Strong inbound delays + many congested feeder POIs can increase walk-ins.\n"
-     "- If outbound is worse than inbound (direction_bias_sec negative), reduce extra customers.\n"
-     "- Typical extra customers/hour should usually be within [-15, +30] unless extreme.\n"
-     "- If confidence_avg is low or features missing, keep prediction close to 0.\n"
+     "CAFE CONTEXT:\n"
+     "- This is the SAME cafe every time (hardcoded location).\n"
+     "- We are estimating incremental walk-ins caused by nearby traffic patterns.\n\n"
+     "BASELINE CUSTOMERS PER HOUR (anchor): {baseline}\n\n"
+     "GOOGLE TRAFFIC FEATURES (already extracted):\n{features}\n\n"
+     "INTERPRETATION RULES:\n"
+     "- avg_congestion_ratio < 0.8 across multiple POIs indicates meaningful slowdown.\n"
+     "- inbound_delay_sec_weighted > outbound_delay_sec_weighted suggests traffic flowing TOWARD the cafe.\n"
+     "- dominant_direction = 'towards_cafe' increases likelihood of walk-ins.\n"
+     "- dominant_direction = 'away_from_cafe' REDUCES or negates extra customers.\n"
+     "- Road closures can either help (forced proximity) or hurt (blocked access); be cautious.\n"
+     "- If bad_congestion_share is low, traffic impact is likely noise.\n"
+     "- If confidence_avg is missing or < 0.5, keep prediction very close to 0.\n\n"
+     "OUTPUT GUIDELINES:\n"
+     "- expected_extra_customers_per_hour should usually be between -15 and +30.\n"
+     "- Use negative values if traffic likely discourages access.\n"
+     "- Be conservative unless multiple signals agree.\n"
+     "- rationale_bullets should reference specific features (direction, delays, congestion).\n\n"
      "Now output ONLY the JSON.\n")
 ])
 
@@ -182,7 +198,7 @@ PROMPT = ChatPromptTemplate.from_messages([
 def forecast_extra_customers(
     dataset_path: str,
     baseline_customers_per_hour: float,
-    temperature: float = 0.2
+    temperature: float = 0.4
 ) -> Dict[str, Any]:
     if not os.getenv("GOOGLE_API_KEY"):
         raise RuntimeError(
