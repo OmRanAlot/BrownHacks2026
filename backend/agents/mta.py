@@ -3,15 +3,16 @@ import math
 import os
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
-
+from openai import OpenAI
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnableLambda
-
 load_dotenv()
+
+OPENROUTER_CLIENT = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.getenv("GEMINI_API_KEY"),
+)
 
 # Use project root for data files
 _project_root = os.path.join(os.path.dirname(__file__), "..", "..")
@@ -143,64 +144,77 @@ def build_inputs(_: Any) -> Dict[str, Any]:
     }
 
 
+SYSTEM_PROMPT = """You are a specialized demand forecasting agent for a SINGLE cafe located near NYC subway station exits.
+Your task is to estimate short-term customer demand caused by subway conditions.
+
+You will receive LIVE vs BASELINE train busyness summaries for the SAME UTC hour window.
+You MUST start from the numeric prior and only adjust conservatively.
+
+CAUSAL MODEL TO USE:
+- Increased subway crowding can increase sidewalk density near station exits.
+- Train bunching and delays cause people to wait, linger, or resurface near exits.
+- Only a small fraction of additional foot traffic converts to cafe customers.
+- This is a single cafe, not a station-wide retailer.
+
+Assume the cafe benefits more from delayed exits than from fast commuter throughput.
+IMPORTANT CONSTRAINTS:
+- expected_extra_customers_next_30_min must be realistic (usually 0-15).
+- If signals are mixed or weak, stay close to the numeric prior.
+- Never invent large demand spikes without strong evidence.
+
+Return ONLY valid JSON with the required fields."""
+
+
 def run_mta_forecast() -> dict:
-    # ✅ Gemini model via LangChain
-    llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
-        temperature=0.2
-        )
+    inputs = build_inputs(None)
 
-        # Structured output: if your version supports it, this is clean.
-        # If it throws, tell me the exact error and I’ll swap to a JSON parser fallback.
-    structured_llm = llm.with_structured_output(ExtraCustomerEstimate)
+    user_prompt = f"""HOUR (UTC): {inputs['hour_bucket_utc']}
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system",
-        "You are a specialized demand forecasting agent for a SINGLE cafe located near NYC subway station exits.\n"
-        "Your task is to estimate short-term customer demand caused by subway conditions.\n\n"
-        "You will receive LIVE vs BASELINE train busyness summaries for the SAME UTC hour window.\n"
-        "You MUST start from the numeric prior and only adjust conservatively.\n\n"
-        "CAUSAL MODEL TO USE:\n"
-        "- Increased subway crowding can increase sidewalk density near station exits.\n"
-        "- Train bunching and delays cause people to wait, linger, or resurface near exits.\n"
-        "- Only a small fraction of additional foot traffic converts to cafe customers.\n"
-        "- This is a single cafe, not a station-wide retailer.\n\n"
-        "Assume the cafe benefits more from delayed exits than from fast commuter throughput."
-        "IMPORTANT CONSTRAINTS:\n"
-        "- expected_extra_customers_next_30_min must be realistic (usually 0–15).\n"
-        "- If signals are mixed or weak, stay close to the numeric prior.\n"
-        "- Never invent large demand spikes without strong evidence.\n\n"
-        "Return ONLY valid JSON with the required fields."
-        ),
-        ("human",
-        "HOUR (UTC): {hour_bucket_utc}\n\n"
-        "LIVE SUMMARY:\n{live_summary}\n\n"
-        "BASELINE SUMMARY:\n{baseline_summary}\n\n"
-        "NUMERIC PRIOR (ANCHOR — start here):\n{prior}\n\n"
-        "LIVE TRAIN SAMPLE (soonest arrivals first):\n{live_sample}\n\n"
-        "BASELINE TRAIN SAMPLE:\n{baseline_sample}\n\n"
-        "ASSUMPTIONS:\n{assumptions}\n\n"
-        "ADJUSTMENT GUIDELINES:\n"
-        "- Higher live train_count vs baseline suggests more people exiting stations.\n"
-        "- Higher score_avg or score_sum vs baseline increases foot traffic pressure.\n"
-        "- Train bunching amplifies sidewalk congestion near exits.\n"
-        "- Delays >= 1 min increase dwell time near station entrances.\n"
-        "- If live conditions are similar to baseline, keep extra customers near the prior.\n\n"
-        "OUTPUT JSON FIELDS:\n"
-        "- expected_customers_next_30_min\n"
-        "- expected_extra_customers_next_30_min\n"
-        "- confidence_0_to_1\n"
-        "- main_drivers (1–6 short bullets)\n"
-        "- notes (optional)\n"
-        )
-    ])
+LIVE SUMMARY:
+{json.dumps(inputs['live_summary'], indent=2)}
 
-    chain = (
-        RunnableLambda(build_inputs)
-        | prompt
-        | structured_llm
+BASELINE SUMMARY:
+{json.dumps(inputs['baseline_summary'], indent=2)}
+
+NUMERIC PRIOR (ANCHOR - start here):
+{json.dumps(inputs['prior'], indent=2)}
+
+LIVE TRAIN SAMPLE (soonest arrivals first):
+{json.dumps(inputs['live_sample'], indent=2)}
+
+BASELINE TRAIN SAMPLE:
+{json.dumps(inputs['baseline_sample'], indent=2)}
+
+ASSUMPTIONS:
+{json.dumps(inputs['assumptions'], indent=2)}
+
+ADJUSTMENT GUIDELINES:
+- Higher live train_count vs baseline suggests more people exiting stations.
+- Higher score_avg or score_sum vs baseline increases foot traffic pressure.
+- Train bunching amplifies sidewalk congestion near exits.
+- Delays >= 1 min increase dwell time near station entrances.
+- If live conditions are similar to baseline, keep extra customers near the prior.
+
+OUTPUT JSON FIELDS:
+- expected_customers_next_30_min
+- expected_extra_customers_next_30_min
+- confidence_0_to_1
+- main_drivers (1-6 short bullets)
+- notes (optional)
+"""
+
+    response = OPENROUTER_CLIENT.chat.completions.create(
+        model="google/gemini-2.5-flash",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.2,
+        response_format={"type": "json_object"},
     )
-    result = chain.invoke({})
+    raw = (response.choices[0].message.content or "{}").strip()
+    parsed = json.loads(raw)
+    result = ExtraCustomerEstimate(**parsed)
     return result.model_dump()
 
 

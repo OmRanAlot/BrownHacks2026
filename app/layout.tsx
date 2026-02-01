@@ -2,6 +2,7 @@ import React from "react"
 import type { Metadata } from 'next'
 import { Inter, Playfair_Display, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { EventSurgeProvider } from "@/components/event-surge-context"
 import './globals.css'
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -9,7 +10,7 @@ const _playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playf
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'CityFootfall AI - Smarter Staffing for Busy Cities',
+  title: 'Clarity',
   description: 'Turn city chaos into staffing clarity. Predict foot traffic using weather, events, and maps data - then automatically act.',
   generator: 'v0.app',
   icons: {
@@ -39,8 +40,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} font-sans antialiased`}>
-        {children}
-        <Analytics />
+        <EventSurgeProvider>
+          {children}
+          <Analytics />
+        </EventSurgeProvider>
       </body>
     </html>
   )

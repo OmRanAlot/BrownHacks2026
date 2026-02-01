@@ -9,8 +9,8 @@ export default function AboutPage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
           <Link href="/" className="flex items-center">
             <Image
-              src="/placeholder-logo.png"
-              alt="Logo"
+              src="/clarity-logo.png"
+              alt="Clarity"
               width={120}
               height={40}
               className="h-10 w-auto object-contain"
