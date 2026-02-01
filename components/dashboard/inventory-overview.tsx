@@ -1,15 +1,16 @@
 "use client"
 
-import { useState } from "react"
-import { Check } from "lucide-react"
+import { useState, useMemo } from "react"
+import { Check, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useEventSurge } from "@/components/event-surge-context"
 
 type InventoryRow = {
   id: string
   item: string
   estimatedRequirement: string
   stockRemaining: string
-  status: "shipment" | "noAction" | "outOfStock" | "confirmation"
+  status: "shipment" | "noAction" | "outOfStock" | "confirmation" | "reduced"
 }
 
 // Estimated requirement aligns with InventoryBarChart data
@@ -19,6 +20,15 @@ const initialRows: InventoryRow[] = [
   { id: "3", item: "Milk", estimatedRequirement: "80", stockRemaining: "70", status: "noAction" },
   { id: "4", item: "Donuts", estimatedRequirement: "90", stockRemaining: "70", status: "noAction" },
   { id: "5", item: "Napkins", estimatedRequirement: "200", stockRemaining: "70", status: "shipment" },
+]
+
+// Surge scenario: reduced orders for lower foot traffic
+const surgeRows: InventoryRow[] = [
+  { id: "1", item: "Cups", estimatedRequirement: "450", stockRemaining: "320", status: "noAction" },
+  { id: "2", item: "Coffee Beans", estimatedRequirement: "102 kg (−15%)", stockRemaining: "85 kg", status: "reduced" },
+  { id: "3", item: "Milk", estimatedRequirement: "76 L (−5%)", stockRemaining: "55 L", status: "reduced" },
+  { id: "4", item: "Donuts", estimatedRequirement: "63 (−30%)", stockRemaining: "60", status: "reduced" },
+  { id: "5", item: "Napkins", estimatedRequirement: "200", stockRemaining: "0", status: "outOfStock" },
 ]
 
 function StatusBadge({ status }: { status: InventoryRow["status"] }) {
@@ -39,6 +49,10 @@ function StatusBadge({ status }: { status: InventoryRow["status"] }) {
       label: "Out of stock",
       className: "bg-destructive/10 text-destructive",
     },
+    reduced: {
+      label: "Order reduced (surge)",
+      className: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    },
   }
   const { label, className } = config[status]
   return (
@@ -49,8 +63,11 @@ function StatusBadge({ status }: { status: InventoryRow["status"] }) {
 }
 
 export function InventoryOverview() {
+  const { isSurgeActive } = useEventSurge()
   const [rows, setRows] = useState<InventoryRow[]>(initialRows)
   const [orderConfirmed, setOrderConfirmed] = useState(false)
+
+  const displayRows = useMemo(() => (isSurgeActive ? surgeRows : rows), [isSurgeActive, rows])
 
   const handleConfirmOrder = () => {
     setRows((prev) =>
@@ -61,6 +78,12 @@ export function InventoryOverview() {
 
   return (
     <div className="rounded-xl border border-border bg-card p-6">
+      {isSurgeActive && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-600 dark:text-amber-400">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>Event surge: Orders reduced (Milk −5%, Donuts −30%, Coffee −15%)</span>
+        </div>
+      )}
       <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-foreground">Inventory Overview</h3>
@@ -87,7 +110,7 @@ export function InventoryOverview() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {displayRows.map((row) => (
               <tr key={row.id} className="border-b border-border/50 last:border-0">
                 <td className="py-3 font-medium text-foreground">{row.item}</td>
                 <td className="py-3 text-sm text-muted-foreground">{row.estimatedRequirement}</td>

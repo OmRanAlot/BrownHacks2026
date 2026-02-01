@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
-import { Check, Clock, UserPlus, Printer } from "lucide-react"
+import { useState, useMemo } from "react"
+import { Check, Clock, UserPlus, Printer, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useEventSurge } from "@/components/event-surge-context"
 
 type StaffMember = {
   id: string
@@ -21,7 +22,18 @@ const initialStaff: StaffMember[] = [
 ]
 
 export function StaffingOverview({ showPrintButton = false }: { showPrintButton?: boolean }) {
+  const { isSurgeActive } = useEventSurge()
   const [staff, setStaff] = useState(initialStaff)
+
+  // When surge is active: remove Alex Kim, shorten Jordan Lee
+  const displayStaff = useMemo(() => {
+    if (!isSurgeActive) return staff
+    return staff
+      .filter((s) => s.name !== "Alex Kim")
+      .map((s) =>
+        s.name === "Jordan Lee" ? { ...s, shift: "5pm - 7pm", status: "confirmed" as const } : s
+      )
+  }, [staff, isSurgeActive])
   const [approved, setApproved] = useState(false)
 
   const handleApprove = () => {
@@ -34,10 +46,16 @@ export function StaffingOverview({ showPrintButton = false }: { showPrintButton?
     setApproved(true)
   }
 
-  const pendingCount = staff.filter((s) => s.status === "pending" || s.status === "new").length
+  const pendingCount = displayStaff.filter((s) => s.status === "pending" || s.status === "new").length
 
   return (
     <div className="rounded-xl border border-border bg-card p-6">
+      {isSurgeActive && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-600 dark:text-amber-400">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>Event surge: Alex Kim removed, Jordan Lee shortened to 5–7pm (low demand)</span>
+        </div>
+      )}
       <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-foreground">Staffing Overview</h3>
@@ -66,7 +84,7 @@ export function StaffingOverview({ showPrintButton = false }: { showPrintButton?
             </tr>
           </thead>
           <tbody>
-            {staff.map((member) => (
+            {displayStaff.map((member) => (
               <tr key={member.id} className="border-b border-border/50 last:border-0">
                 <td className="py-3">
                   <div className="flex items-center gap-3">

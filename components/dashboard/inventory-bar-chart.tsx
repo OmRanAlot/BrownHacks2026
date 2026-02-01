@@ -12,7 +12,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { useEventSurge } from "@/components/event-surge-context"
 
+<<<<<<< HEAD
 // Standard dataset (matches inventory-overview.tsx). ordered = amount on order (shipment en route).
 const inventoryDataStandard = [
   { item: "Cups", estimated: 450, inStock: 320, ordered: 0 },
@@ -29,12 +31,31 @@ const inventoryDataDemo = [
   { item: "Milk", estimated: 80, inStock: 12, ordered: 68 },
   { item: "Donuts", estimated: 90, inStock: 23, ordered: 67 },
   { item: "Napkins", estimated: 200, inStock: 7, ordered: 193 },
+=======
+// Estimated Requirement > In Stock for all; Napkins In Stock = 0
+const baseInventoryData = [
+  { item: "Cups", estimated: 450, inStock: 320 },
+  { item: "Coffee Beans", estimated: 120, inStock: 85 },
+  { item: "Milk", estimated: 80, inStock: 55 },
+  { item: "Donuts", estimated: 90, inStock: 60 },
+  { item: "Napkins", estimated: 200, inStock: 0 },
+>>>>>>> 5273387086590736295aa2f16393c6beabd7e6df
+]
+
+// Surge: decreased potential demand (Cups −20%, Coffee −15%, Milk −5%, Donuts −30%, Napkins no change)
+const surgeInventoryData = [
+  { item: "Cups", estimated: 360, inStock: 320 },
+  { item: "Coffee Beans", estimated: 102, inStock: 85 },
+  { item: "Milk", estimated: 76, inStock: 55 },
+  { item: "Donuts", estimated: 63, inStock: 60 },
+  { item: "Napkins", estimated: 200, inStock: 0 },
 ]
 
 // Estimated requirement = green, In stock = orange
 const estimatedColor = "oklch(0.6 0.15 145)"
 const inStockColor = "oklch(0.7 0.15 65)"
 
+<<<<<<< HEAD
 export interface InventoryBarChartProps {
   /** When true, use demo dataset (inventory-overview-demo); otherwise standard (inventory-overview). */
   useDemo?: boolean
@@ -42,13 +63,20 @@ export interface InventoryBarChartProps {
 
 export function InventoryBarChart({ useDemo = false }: InventoryBarChartProps) {
   const inventoryData = useDemo ? inventoryDataDemo : inventoryDataStandard
+=======
+export function InventoryBarChart() {
+  const { isSurgeActive } = useEventSurge()
+  const inventoryData = isSurgeActive ? surgeInventoryData : baseInventoryData
+>>>>>>> 5273387086590736295aa2f16393c6beabd7e6df
 
   return (
     <div className="rounded-xl border border-border bg-card p-6">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Inventory Levels</h2>
-          <p className="text-sm text-muted-foreground">Estimated Requirement vs In Stock</p>
+          <p className="text-sm text-muted-foreground">
+            {isSurgeActive ? "Reduced potential (event surge) vs In Stock" : "Estimated Requirement vs In Stock"}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-4 text-xs">
           <div className="flex items-center gap-2">

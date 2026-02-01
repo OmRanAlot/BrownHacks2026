@@ -5,9 +5,8 @@ from statistics import mean
 from typing import Any, Dict, List, Optional
 
 import dotenv
+from openai import OpenAI
 from pydantic import BaseModel, Field, ValidationError
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
 
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -15,7 +14,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 dotenv.load_dotenv()
 DATASET_PATH = os.path.join(os.path.dirname(__file__), "detailed_cafe_congestion.json")
 
-GEMINI_MODEL = "gemini-2.5-flash"  # fast + great for hackathon
+OPENROUTER_CLIENT = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.getenv("GEMINI_API_KEY"),
+)
 
 CLAMP_LO = -15.0
 CLAMP_HI = 30.0
@@ -155,44 +157,24 @@ class ExtraCustomersOut(BaseModel):
     cautions: List[str] = Field(default_factory=list)
 
 
-# ✅ IMPORTANT: escaped braces with {{ and }}
-PROMPT = ChatPromptTemplate.from_messages([
-    ("system",
-     "You are a specialized Google Traffic interpretation agent for a SINGLE, fixed NYC cafe location.\n"
-     "Your job is to estimate how nearby road congestion affects walk-in customers per hour.\n\n"
-     "You MUST output ONLY valid JSON (no markdown, no commentary).\n\n"
-     "Think causally:\n"
-     "- Traffic does NOT equal customers by default.\n"
-     "- Only congestion that increases pedestrian exposure or delays people NEAR the cafe increases walk-ins.\n"
-     "- Direction matters more than raw congestion.\n\n"
-     "Return JSON with EXACTLY these keys:\n"
-     "{{\n"
-     '  "expected_extra_customers_per_hour": number,\n'
-     '  "confidence_0_to_1": number,\n'
-     '  "rationale_bullets": string[],\n'
-     '  "cautions": string[]\n'
-     "}}\n"),
-    ("user",
-     "CAFE CONTEXT:\n"
-     "- This is the SAME cafe every time (hardcoded location).\n"
-     "- We are estimating incremental walk-ins caused by nearby traffic patterns.\n\n"
-     "BASELINE CUSTOMERS PER HOUR (anchor): {baseline}\n\n"
-     "GOOGLE TRAFFIC FEATURES (already extracted):\n{features}\n\n"
-     "INTERPRETATION RULES:\n"
-     "- avg_congestion_ratio < 0.8 across multiple POIs indicates meaningful slowdown.\n"
-     "- inbound_delay_sec_weighted > outbound_delay_sec_weighted suggests traffic flowing TOWARD the cafe.\n"
-     "- dominant_direction = 'towards_cafe' increases likelihood of walk-ins.\n"
-     "- dominant_direction = 'away_from_cafe' REDUCES or negates extra customers.\n"
-     "- Road closures can either help (forced proximity) or hurt (blocked access); be cautious.\n"
-     "- If bad_congestion_share is low, traffic impact is likely noise.\n"
-     "- If confidence_avg is missing or < 0.5, keep prediction very close to 0.\n\n"
-     "OUTPUT GUIDELINES:\n"
-     "- expected_extra_customers_per_hour should usually be between -15 and +30.\n"
-     "- Use negative values if traffic likely discourages access.\n"
-     "- Be conservative unless multiple signals agree.\n"
-     "- rationale_bullets should reference specific features (direction, delays, congestion).\n\n"
-     "Now output ONLY the JSON.\n")
-])
+SYSTEM_PROMPT = """You are a specialized Google Traffic interpretation agent for a SINGLE, fixed NYC cafe location.
+Your job is to estimate how nearby road congestion affects walk-in customers per hour.
+
+You MUST output ONLY valid JSON (no markdown, no commentary).
+
+Think causally:
+- Traffic does NOT equal customers by default.
+- Only congestion that increases pedestrian exposure or delays people NEAR the cafe increases walk-ins.
+- Direction matters more than raw congestion.
+
+Return JSON with EXACTLY these keys:
+{
+  "expected_extra_customers_per_hour": number,
+  "confidence_0_to_1": number,
+  "rationale_bullets": string[],
+  "cautions": string[]
+}
+"""
 
 
 def forecast_extra_customers(
@@ -210,17 +192,43 @@ def forecast_extra_customers(
 
     features = extract_features(dataset)
 
-    llm = ChatGoogleGenerativeAI(
-        model=GEMINI_MODEL,
+    user_prompt = f"""CAFE CONTEXT:
+- This is the SAME cafe every time (hardcoded location).
+- We are estimating incremental walk-ins caused by nearby traffic patterns.
+
+BASELINE CUSTOMERS PER HOUR (anchor): {baseline_customers_per_hour}
+
+GOOGLE TRAFFIC FEATURES (already extracted):
+{json.dumps(features, indent=2)}
+
+INTERPRETATION RULES:
+- avg_congestion_ratio < 0.8 across multiple POIs indicates meaningful slowdown.
+- inbound_delay_sec_weighted > outbound_delay_sec_weighted suggests traffic flowing TOWARD the cafe.
+- dominant_direction = 'towards_cafe' increases likelihood of walk-ins.
+- dominant_direction = 'away_from_cafe' REDUCES or negates extra customers.
+- Road closures can either help (forced proximity) or hurt (blocked access); be cautious.
+- If bad_congestion_share is low, traffic impact is likely noise.
+- If confidence_avg is missing or < 0.5, keep prediction very close to 0.
+
+OUTPUT GUIDELINES:
+- expected_extra_customers_per_hour should usually be between -15 and +30.
+- Use negative values if traffic likely discourages access.
+- Be conservative unless multiple signals agree.
+- rationale_bullets should reference specific features (direction, delays, congestion).
+
+Now output ONLY the JSON.
+"""
+
+    response = OPENROUTER_CLIENT.chat.completions.create(
+        model="google/gemini-2.5-flash",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
         temperature=temperature,
+        response_format={"type": "json_object"},
     )
-
-    msg = (PROMPT | llm).invoke({
-        "baseline": baseline_customers_per_hour,
-        "features": json.dumps(features, indent=2),
-    })
-
-    raw_text = getattr(msg, "content", str(msg))
+    raw_text = (response.choices[0].message.content or "").strip()
 
     try:
         parsed = safe_json_extract(raw_text)
