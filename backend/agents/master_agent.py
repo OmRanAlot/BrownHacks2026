@@ -24,9 +24,9 @@ project_root = os.path.join(os.path.dirname(__file__), "..", "..")
 load_dotenv(os.path.join(project_root, ".env"))
 openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-from mta import run_mta_forecast
-from nearbycongestion import forecast_extra_customers
-from predictor_agent import predict_for_datetime
+from agents.mta import run_mta_forecast
+from agents.nearbycongestion import forecast_extra_customers
+from agents.predictor_agent import predict_for_datetime
 
 
 
@@ -73,39 +73,46 @@ class MasterFootTrafficAgent:
     async def run(self, date=None, time=None) -> Dict[str, Any]:
         """
         Orchestrates all sub-agents and returns a unified forecast.
+        Sub-agents are the single source of truth; the UI must not call them directly.
+        If one sub-agent errors, we use partial data and combine conservatively.
         """
 
-        # --- Run sub-agents (parallel where possible) ---
+        # --- Run sub-agents in parallel; return_exceptions so one failure doesn't fail all ---
+        dataset_path = os.path.join(project_root, "detailed_cafe_congestion.json")
         weather_task = asyncio.to_thread(
             predict_for_datetime,
             date=date,
             time=time,
             business_type="cafe"
         )
-
-        dataset_path = os.path.join(project_root, "detailed_cafe_congestion.json")
         google_task = asyncio.to_thread(
             forecast_extra_customers,
             dataset_path,
             self.baseline
         )
+        mta_task = asyncio.to_thread(run_mta_forecast)
 
-        mta_task = asyncio.to_thread(
-            run_mta_forecast
-        )
-
-        weather_out, google_out, mta_out = await asyncio.gather(
+        results = await asyncio.gather(
             weather_task,
             google_task,
-            mta_task
+            mta_task,
+            return_exceptions=True
         )
 
-        # --- Normalize outputs ---
-        signals = [
-            normalize_weather_event(weather_out),
-            normalize_google_traffic(google_out),
-            normalize_mta(mta_out),
-        ]
+        # --- Normalize only successful outputs; failed agents yield a safe default signal ---
+        signals = []
+        for i, out in enumerate(results):
+            if isinstance(out, Exception):
+                name = ["weather_event", "google_traffic", "mta_subway"][i]
+                signals.append({
+                    "source": name,
+                    "extra_customers_per_hour": 0.0,
+                    "confidence": 0.05,
+                    "explanation": f"Agent error: {str(out)[:200]}",
+                })
+            else:
+                fn = [normalize_weather_event, normalize_google_traffic, normalize_mta][i]
+                signals.append(fn(out))
 
         # --- Combine conservatively ---
         combined = self.combine_signals(signals)
@@ -122,24 +129,35 @@ class MasterFootTrafficAgent:
         """
         weighted_sum = 0.0
         weight_total = 0.0
-        explanations = []
 
         for s in signals:
             w = max(0.05, s["confidence"])
             weighted_sum += s["extra_customers_per_hour"] * w
             weight_total += w
-            explanations.append(f"[{s['source']}] {s['explanation']}")
 
         extra_customers = weighted_sum / weight_total if weight_total > 0 else 0.0
 
         # Guardrails (single cafe)
         extra_customers = max(-0.5 * self.baseline, min(extra_customers, 1.5 * self.baseline))
 
+        # 3-4 word summary based on extra customers vs baseline
+        pct = (extra_customers / self.baseline) * 100 if self.baseline else 0
+        if pct >= 50:
+            summary = ["Much higher than usual"]
+        elif pct >= 15:
+            summary = ["Above baseline today"]
+        elif pct >= -15:
+            summary = ["On par with usual"]
+        elif pct >= -40:
+            summary = ["Below baseline today"]
+        else:
+            summary = ["Much lower than usual"]
+
         return {
             "expected_extra_customers_per_hour": round(extra_customers, 1),
             "expected_total_customers_per_hour": round(self.baseline + extra_customers, 1),
             "confidence": round(min(1.0, weight_total / len(signals)), 2),
-            "summary": explanations[:5],
+            "summary": summary,
         }
 
 
