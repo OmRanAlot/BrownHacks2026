@@ -1,27 +1,32 @@
-"""
-CityFootfall AI - FastAPI Backend
-A multi-agent system for predicting foot traffic and automating operations.
-"""
-
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional
+import asyncio
+import json
+import os
+import re
 from datetime import datetime
-import random
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import Optional, Dict, Any, List
+import time
 
-from agents.orchestrator import OrchestratorAgent
-from agents.predictor import PredictorAgent
-from agents.operator import OperatorAgent
-from mcp.tools import MCPToolRegistry
+from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
+from openai import OpenAI
 
-app = FastAPI(
-    title="CityFootfall AI API",
-    description="Autonomous agents for urban business operations",
-    version="1.0.0",
+load_dotenv()
+
+from agents.master_agent import MasterFootTrafficAgent
+
+OPENROUTER_CLIENT = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.getenv("GEMINI_API_KEY"),
 )
 
-# CORS middleware for frontend communication
+app = FastAPI(
+    title="Foot Traffic Prediction API",
+    description="Orchestrates multi-agent predictions for small businesses",
+    version="0.1.0",
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -30,277 +35,218 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize agents
-orchestrator = OrchestratorAgent()
-predictor = PredictorAgent()
-operator = OperatorAgent()
+# -------------------------
+# Request / Response Models
+# -------------------------
 
-# Initialize MCP tool registry
-mcp_registry = MCPToolRegistry()
-
-
-# ============ Models ============
-
-class LocationRequest(BaseModel):
-    location_id: str
-    name: str
+class FootTrafficRequest(BaseModel):
+    business_name: str
+    latitude: float
+    longitude: float
+    baseline_customers_per_hour: int
+    start_time: Optional[str] = None   # ISO format
+    horizon_hours: int = 24
 
 
-class PredictionRequest(BaseModel):
-    location_id: str
-    date: Optional[str] = None
+class FootTrafficResponse(BaseModel):
+    business_name: str
+    horizon_hours: int
+    generated_at: float
+    baseline_customers_per_hour: int
+    signals: List[Dict[str, Any]]
+    forecast: Dict[str, Any]
+    explanation: str
 
 
-class PredictionResponse(BaseModel):
-    location_id: str
-    date: str
-    hourly_forecasts: list
-    confidence: float
-    primary_driver: str
-    demand_level: str
-    traffic_change: str
+def _parse_start_time(start_time: Optional[str]) -> tuple[Optional[str], Optional[int]]:
+    """Parse ISO start_time into (date, hour) for MasterFootTrafficAgent."""
+    if not start_time:
+        return None, None
+    try:
+        if "T" in start_time:
+            dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+        else:
+            dt = datetime.strptime(start_time.strip(), "%Y-%m-%d")
+        date_str = dt.strftime("%Y-%m-%d")
+        hour = dt.hour if hasattr(dt, "hour") else None
+        return date_str, hour
+    except Exception:
+        return None, None
 
 
-class ActionRequest(BaseModel):
-    action_type: str  # schedule, message, order
-    payload: dict
+# Default baseline for dashboard; can be overridden by query params
+DEFAULT_BASELINE = 42.0
+
+# In-memory cache: key -> (expiry_timestamp, result). TTL = 30 minutes.
+_FORECAST_CACHE: Dict[str, tuple[float, Dict[str, Any]]] = {}
+_CACHE_TTL_SECONDS = 30 * 60
 
 
-class CitySignals(BaseModel):
-    weather: dict
-    events: list
-    maps_activity: dict
-    disruptions: list
+def _cache_key(baseline: float, date: Optional[str], time: Optional[int]) -> str:
+    date_part = date or ""
+    time_part = "" if time is None else str(time)
+    return f"{baseline}_{date_part}_{time_part}"
 
 
-class AgentStatus(BaseModel):
-    name: str
-    status: str
-    last_action: str
-    decisions_count: int
+def _get_cached(cache_key: str) -> Optional[Dict[str, Any]]:
+    now_ts = time.time()
+    if cache_key not in _FORECAST_CACHE:
+        return None
+    expiry, result = _FORECAST_CACHE[cache_key]
+    if now_ts >= expiry:
+        del _FORECAST_CACHE[cache_key]
+        return None
+    return result
 
 
-# ============ API Endpoints ============
+def _set_cached(cache_key: str, result: Dict[str, Any]) -> None:
+    _FORECAST_CACHE[cache_key] = (time.time() + _CACHE_TTL_SECONDS, result)
+
+
+def _generate_business_insights(result: Dict[str, Any]) -> List[str]:
+    """
+    Use an LLM to synthesize the master agent's signals into bullets that explain
+    the REASONING and RATIONALE behind the forecast. Does NOT repeat the high-level
+    summary (that's already in the metric cards above).
+    """
+    if not os.getenv("GEMINI_API_KEY"):
+        return []
+
+    try:
+        signals = result.get("signals", [])
+
+        # Pass full signal data so the LLM can explain the reasoning
+        signal_details = []
+        source_labels = {
+            "weather_event": "Weather",
+            "google_traffic": "Nearby road traffic",
+            "mta_subway": "Subway / transit",
+        }
+        for s in signals:
+            src = s.get("source", "?")
+            label = source_labels.get(src, src.replace("_", " ").title())
+            ex = s.get("extra_customers_per_hour", 0)
+            conf = s.get("confidence", 0.5)
+            exp = s.get("explanation", "").strip()
+            if exp:
+                signal_details.append(
+                    f"- {label}: {ex:+.1f} extra customers/hr (confidence {conf:.0%}). Reasoning: {exp}"
+                )
+            else:
+                signal_details.append(
+                    f"- {label}: {ex:+.1f} extra customers/hr (confidence {conf:.0%})."
+                )
+
+        prompt = f"""You are a helpful assistant for a cafe/small business owner. The metric cards ABOVE already show the high-level forecast (demand level, confidence, primary driver). Your job is to write 3–5 bullet points that explain the REASONING behind that forecast—what each data source found and WHY it affects foot traffic.
+
+DO NOT repeat the summary or the numbers from the metric cards (e.g. don't say "above baseline" or "expect more customers"). Instead, explain the underlying factors and rationale.
+
+DATA SOURCES AND THEIR REASONING:
+{chr(10).join(signal_details) if signal_details else "(No signal data)"}
+
+RULES:
+- Each bullet should explain WHAT one data source found and WHY it matters for foot traffic.
+- Use plain language. Reference the actual reasoning from the data above.
+- Each bullet: 1–2 sentences max. Focus on rationale, not repetition.
+- Example style: "Weather conditions are favorable—mild temps and clear skies tend to bring more walk-in traffic." / "Nearby road congestion suggests traffic flowing toward your area, which may increase pedestrian exposure." / "Subway conditions show above-average crowding near station exits, which often translates to more people on the sidewalk."
+- Output ONLY a JSON array of strings, one bullet per element. No other text.
+Example: ["Weather conditions are favorable today—mild temps tend to bring more walk-in traffic.", "Road traffic patterns suggest congestion flowing toward your area.", "Subway crowding near station exits may increase sidewalk foot traffic."]"""
+
+        response = OPENROUTER_CLIENT.chat.completions.create(
+            model="google/gemini-2.5-flash",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+        )
+        raw = (response.choices[0].message.content or "").strip()
+
+        # Extract JSON array
+        m = re.search(r"\[[\s\S]*\]", raw)
+        if not m:
+            return []
+        arr = json.loads(m.group(0))
+        if not isinstance(arr, list):
+            return []
+        return [str(x).strip() for x in arr if x][:6]
+    except Exception:
+        return []
+
 
 @app.get("/")
 async def root():
     return {
-        "service": "CityFootfall AI",
-        "version": "1.0.0",
-        "status": "online",
-        "agents": ["orchestrator", "predictor", "operator"],
+        "service": "Foot Traffic Prediction API",
+        "version": "0.1.0",
+        "endpoints": ["GET /api/foot-traffic-forecast", "POST /predict-foot-traffic"],
     }
 
 
-@app.get("/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "agents_online": True,
-    }
-
-
-# ============ Prediction Endpoints ============
-
-@app.post("/api/predict", response_model=PredictionResponse)
-async def get_prediction(request: PredictionRequest):
-    """Generate foot traffic prediction for a location."""
+@app.get("/api/foot-traffic-forecast")
+async def get_foot_traffic_forecast(
+    baseline: Optional[float] = None,
+    date: Optional[str] = None,
+    time: Optional[int] = None,
+):
+    """
+    Dashboard endpoint: run MasterFootTrafficAgent and return baseline_customers_per_hour, signals, final_forecast.
+    Caches results for 30 min to avoid re-running agents. Adds business_insights: LLM-generated bullets.
+    """
     try:
-        # Gather city signals
-        signals = await predictor.gather_signals(request.location_id)
-        
-        # Generate prediction
-        prediction = await predictor.predict(
-            location_id=request.location_id,
-            date=request.date or datetime.now().strftime("%Y-%m-%d"),
-            signals=signals,
+        baseline_val = float(baseline) if baseline is not None else DEFAULT_BASELINE
+        key = _cache_key(baseline_val, date, time)
+
+        # Return cached if valid
+        cached = _get_cached(key)
+        if cached is not None:
+            return cached
+
+        # Run agents
+        agent = MasterFootTrafficAgent(baseline_customers_per_hour=baseline_val)
+        result = await agent.run(date=date, time=time)
+        # Generate business-friendly bullets (runs in thread pool to avoid blocking)
+        insights = await asyncio.to_thread(_generate_business_insights, result)
+        if insights:
+            result["business_insights"] = insights
+
+        _set_cached(key, result)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# -------------------------
+# API Endpoint
+# -------------------------
+
+@app.post("/predict-foot-traffic", response_model=FootTrafficResponse)
+async def predict_foot_traffic(request: FootTrafficRequest):
+    """
+    Single entrypoint for dashboard to fetch foot traffic predictions.
+    Calls ONLY the master agent.
+    """
+
+    try:
+        date, time_hour = _parse_start_time(request.start_time)
+        agent = MasterFootTrafficAgent(baseline_customers_per_hour=request.baseline_customers_per_hour)
+        result = await agent.run(date=date, time=time_hour)
+
+        final_forecast = result.get("final_forecast", {})
+        summary = final_forecast.get("summary", [])
+        explanation = "; ".join(summary) if isinstance(summary, list) else str(summary)
+        if not explanation:
+            explanation = "Prediction generated using multi-agent signal fusion."
+
+        return {
+            "business_name": request.business_name,
+            "horizon_hours": request.horizon_hours,
+            "generated_at": time.time(),
+            "baseline_customers_per_hour": request.baseline_customers_per_hour,
+            "signals": result.get("signals", []),
+            "forecast": final_forecast,
+            "explanation": explanation,
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Foot traffic prediction failed: {str(e)}"
         )
-        
-        # Orchestrator evaluates prediction
-        await orchestrator.evaluate_prediction(prediction)
-        
-        return prediction
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/signals/{location_id}")
-async def get_city_signals(location_id: str):
-    """Get current city signals for a location."""
-    signals = await predictor.gather_signals(location_id)
-    return signals
-
-
-@app.get("/api/forecast/{location_id}")
-async def get_hourly_forecast(location_id: str, hours: int = 24):
-    """Get hourly foot traffic forecast."""
-    forecast = await predictor.get_hourly_forecast(location_id, hours)
-    return {"location_id": location_id, "forecasts": forecast}
-
-
-# ============ Agent Endpoints ============
-
-@app.get("/api/agents/status")
-async def get_agents_status():
-    """Get status of all agents."""
-    return {
-        "orchestrator": orchestrator.get_status(),
-        "predictor": predictor.get_status(),
-        "operator": operator.get_status(),
-    }
-
-
-@app.get("/api/agents/orchestrator/workflows")
-async def get_orchestrator_workflows():
-    """Get active workflows from orchestrator."""
-    return {"workflows": orchestrator.get_active_workflows()}
-
-
-@app.get("/api/agents/orchestrator/decisions")
-async def get_orchestrator_decisions():
-    """Get recent decisions from orchestrator."""
-    return {"decisions": orchestrator.get_recent_decisions()}
-
-
-@app.get("/api/agents/predictor/anomalies")
-async def get_predictor_anomalies():
-    """Get detected anomalies from predictor."""
-    return {"anomalies": predictor.get_anomalies()}
-
-
-@app.get("/api/agents/operator/actions")
-async def get_operator_actions():
-    """Get executed actions from operator."""
-    return {"actions": operator.get_executed_actions()}
-
-
-@app.get("/api/agents/operator/queue")
-async def get_operator_queue():
-    """Get pending action queue from operator."""
-    return {"pending": operator.get_pending_queue()}
-
-
-# ============ Action Endpoints ============
-
-@app.post("/api/actions/execute")
-async def execute_action(request: ActionRequest):
-    """Execute an action through the operator agent."""
-    try:
-        result = await operator.execute_action(
-            action_type=request.action_type,
-            payload=request.payload,
-        )
-        return {"success": True, "result": result}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/api/actions/schedule-shift")
-async def schedule_shift(
-    employee_id: str,
-    employee_name: str,
-    shift_start: str,
-    shift_end: str,
-    role: str,
-):
-    """Schedule a staff shift using MCP tool."""
-    result = await operator.schedule_shift(
-        employee_id=employee_id,
-        employee_name=employee_name,
-        shift_start=shift_start,
-        shift_end=shift_end,
-        role=role,
-    )
-    return result
-
-
-@app.post("/api/actions/send-notification")
-async def send_notification(
-    recipient_id: str,
-    message: str,
-    channel: str = "sms",
-):
-    """Send notification to staff using MCP tool."""
-    result = await operator.send_notification(
-        recipient_id=recipient_id,
-        message=message,
-        channel=channel,
-    )
-    return result
-
-
-@app.post("/api/actions/place-order")
-async def place_order(
-    item: str,
-    quantity: int,
-    supplier_id: str,
-):
-    """Place inventory order using MCP tool."""
-    result = await operator.place_order(
-        item=item,
-        quantity=quantity,
-        supplier_id=supplier_id,
-    )
-    return result
-
-
-# ============ MCP Tool Endpoints ============
-
-@app.get("/api/mcp/tools")
-async def list_mcp_tools():
-    """List all available MCP tools."""
-    return {"tools": mcp_registry.list_tools()}
-
-
-@app.post("/api/mcp/execute/{tool_name}")
-async def execute_mcp_tool(tool_name: str, params: dict):
-    """Execute an MCP tool directly."""
-    try:
-        result = await mcp_registry.execute(tool_name, params)
-        return {"success": True, "result": result}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# ============ Simulation Endpoints ============
-
-@app.post("/api/simulate/event-surge")
-async def simulate_event_surge(location_id: str):
-    """Simulate an event surge for demo purposes."""
-    # Trigger prediction with surge conditions
-    surge_signals = {
-        "weather": {"condition": "clear", "temp": 72, "rain_prob": 0},
-        "events": [
-            {"name": "Concert", "distance": 0.4, "time": "19:00", "expected_attendance": 5000}
-        ],
-        "maps_activity": {"popularity": 1.4, "trend": "increasing"},
-        "disruptions": [],
-    }
-    
-    # Generate prediction
-    prediction = await predictor.predict(
-        location_id=location_id,
-        date=datetime.now().strftime("%Y-%m-%d"),
-        signals=surge_signals,
-    )
-    
-    # Orchestrator triggers workflows
-    workflows = await orchestrator.trigger_surge_response(prediction)
-    
-    # Operator executes actions
-    actions = await operator.execute_surge_actions(prediction)
-    
-    return {
-        "simulation": "event_surge",
-        "prediction": prediction,
-        "workflows_triggered": workflows,
-        "actions_executed": actions,
-    }
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)

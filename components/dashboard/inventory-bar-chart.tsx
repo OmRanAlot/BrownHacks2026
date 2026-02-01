@@ -12,13 +12,23 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { useEventSurge } from "@/components/event-surge-context"
 
 // Estimated Requirement > In Stock for all; Napkins In Stock = 0
-const inventoryData = [
+const baseInventoryData = [
   { item: "Cups", estimated: 450, inStock: 320 },
   { item: "Coffee Beans", estimated: 120, inStock: 85 },
   { item: "Milk", estimated: 80, inStock: 55 },
   { item: "Donuts", estimated: 90, inStock: 60 },
+  { item: "Napkins", estimated: 200, inStock: 0 },
+]
+
+// Surge: decreased potential demand (Cups −20%, Coffee −15%, Milk −5%, Donuts −30%, Napkins no change)
+const surgeInventoryData = [
+  { item: "Cups", estimated: 360, inStock: 320 },
+  { item: "Coffee Beans", estimated: 102, inStock: 85 },
+  { item: "Milk", estimated: 76, inStock: 55 },
+  { item: "Donuts", estimated: 63, inStock: 60 },
   { item: "Napkins", estimated: 200, inStock: 0 },
 ]
 
@@ -27,12 +37,17 @@ const estimatedColor = "oklch(0.6 0.15 145)"
 const inStockColor = "oklch(0.7 0.15 65)"
 
 export function InventoryBarChart() {
+  const { isSurgeActive } = useEventSurge()
+  const inventoryData = isSurgeActive ? surgeInventoryData : baseInventoryData
+
   return (
     <div className="rounded-xl border border-border bg-card p-6">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Inventory Levels</h2>
-          <p className="text-sm text-muted-foreground">Estimated Requirement vs In Stock</p>
+          <p className="text-sm text-muted-foreground">
+            {isSurgeActive ? "Reduced potential (event surge) vs In Stock" : "Estimated Requirement vs In Stock"}
+          </p>
         </div>
         <div className="flex items-center gap-4 text-xs">
           <div className="flex items-center gap-2">
