@@ -65,18 +65,18 @@ def run_bureau():
     print(f"   🚇 MTA:     {mta_agent.address}")
     print(f"   🚗 Traffic: {traffic_agent.address}")
     print("\nPorts:")
-    print("   Master:  http://127.0.0.1:8000")
-    print("   Weather: http://127.0.0.1:8001")
-    print("   MTA:     http://127.0.0.1:8002")
-    print("   Traffic: http://127.0.0.1:8003")
+    print("   Master:  http://127.0.0.1:9001")
+    print("   Weather: http://127.0.0.1:9002")
+    print("   MTA:     http://127.0.0.1:9003")
+    print("   Traffic: http://127.0.0.1:9004")
     print("\n" + "=" * 70)
     print("💡 TIP: To send a test request, run: python test_client.py")
     print("=" * 70 + "\n")
     
     # Create Bureau and add all agents
     bureau = Bureau(
-        port=8000,  # Main port for the Bureau
-        endpoint=["http://127.0.0.1:8000/submit"],
+        port=9001,  # Main port for the Bureau
+        endpoint=["http://127.0.0.1:9001/submit"],
     )
     
     bureau.add(master_agent)

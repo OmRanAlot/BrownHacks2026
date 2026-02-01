@@ -12,7 +12,7 @@ import os
 import sys
 from datetime import datetime
 
-from uagents import Agent, Context
+from uagents import Agent, Context, Protocol
 from uagents.setup import fund_agent_if_low
 
 # Add parent paths for imports
@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 # Import message schemas
-from schema import WeatherRequest, WeatherResponse
+from schema import WeatherRequest, WeatherResponse, ChatMessage, ChatResponse
 
 # Import existing logic
 from agents.predictor_agent import predict_for_datetime
@@ -42,8 +42,8 @@ WEATHER_AGENT_MAILBOX_KEY = os.getenv("WEATHER_AGENT_MAILBOX_KEY", None)
 weather_agent = Agent(
     name="WeatherAgent",
     seed=WEATHER_AGENT_SEED,
-    port=8001,
-    endpoint=["http://127.0.0.1:8001/submit"],
+    port=9002,
+    endpoint=["http://127.0.0.1:9002/submit"],
     mailbox=f"{WEATHER_AGENT_MAILBOX_KEY}@https://agentverse.ai" if WEATHER_AGENT_MAILBOX_KEY else None,
     network="testnet",  # Register on testnet Almanac
 )
@@ -146,6 +146,53 @@ def _extract_temperature(query_text: str) -> float:
         except (ValueError, IndexError):
             pass
     return None
+
+
+# =============================================================================
+# CHAT PROTOCOL (Required for Agentverse)
+# =============================================================================
+
+chat_protocol = Protocol(name="WeatherChat", version="1.0.0")
+
+
+@chat_protocol.on_message(model=ChatMessage)
+async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
+    """Handle natural language chat messages."""
+    ctx.logger.info(f"💬 Chat message from {sender}: {msg.message}")
+    
+    user_input = msg.message.lower().strip()
+    
+    if any(word in user_input for word in ["weather", "forecast", "temperature", "rain", "sunny"]):
+        response = ChatResponse(
+            message="""🌤️ I'm the WeatherAgent! I analyze weather conditions and their impact on foot traffic.
+
+**What I track:**
+• Temperature and "feels like" conditions
+• Precipitation probability
+• Weather conditions (sunny, cloudy, rain, snow)
+• Historical weather-to-traffic correlations
+
+**How I work:**
+I use RAG (Retrieval Augmented Generation) with a Pinecone vector database containing historical NYC foot traffic patterns. When queried, I find similar past conditions and predict the impact.
+
+To get a prediction, send a WeatherRequest message or ask the HypeLensMasterAgent!""",
+            success=True
+        )
+    elif any(word in user_input for word in ["help", "what", "how", "?"]):
+        response = ChatResponse(
+            message="🌤️ Hi! I'm the WeatherAgent - part of HypeLens. I predict how weather affects cafe foot traffic. I work best when called by the MasterAgent, but you can ask me about weather impact!",
+            success=True
+        )
+    else:
+        response = ChatResponse(
+            message="🌤️ I'm the WeatherAgent. I analyze weather's impact on foot traffic. Ask me about 'weather impact' or say 'help'!",
+            success=True
+        )
+    
+    await ctx.send(sender, response)
+
+
+weather_agent.include(chat_protocol, publish_manifest=True)
 
 
 # =============================================================================

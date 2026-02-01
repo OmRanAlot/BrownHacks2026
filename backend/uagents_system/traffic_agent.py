@@ -11,7 +11,7 @@ Returns: TrafficResponse
 import os
 import sys
 
-from uagents import Agent, Context
+from uagents import Agent, Context, Protocol
 from uagents.setup import fund_agent_if_low
 
 # Add parent paths for imports
@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 # Import message schemas
-from schema import TrafficRequest, TrafficResponse
+from schema import TrafficRequest, TrafficResponse, ChatMessage, ChatResponse
 
 # Import existing logic
 from agents.nearbycongestion import forecast_extra_customers
@@ -42,8 +42,8 @@ TRAFFIC_AGENT_MAILBOX_KEY = os.getenv("TRAFFIC_AGENT_MAILBOX_KEY", None)
 traffic_agent = Agent(
     name="TrafficAgent",
     seed=TRAFFIC_AGENT_SEED,
-    port=8003,
-    endpoint=["http://127.0.0.1:8003/submit"],
+    port=9004,
+    endpoint=["http://127.0.0.1:9004/submit"],
     mailbox=f"{TRAFFIC_AGENT_MAILBOX_KEY}@https://agentverse.ai" if TRAFFIC_AGENT_MAILBOX_KEY else None,
     network="testnet",  # Register on testnet Almanac
 )
@@ -129,6 +129,56 @@ async def handle_traffic_request(ctx: Context, sender: str, msg: TrafficRequest)
     # Send response back to sender
     ctx.logger.info(f"📤 Sending TrafficResponse to {sender}")
     await ctx.send(sender, response)
+
+
+# =============================================================================
+# CHAT PROTOCOL (Required for Agentverse)
+# =============================================================================
+
+chat_protocol = Protocol(name="TrafficChat", version="1.0.0")
+
+
+@chat_protocol.on_message(model=ChatMessage)
+async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
+    """Handle natural language chat messages."""
+    ctx.logger.info(f"💬 Chat message from {sender}: {msg.message}")
+    
+    user_input = msg.message.lower().strip()
+    
+    if any(word in user_input for word in ["traffic", "road", "congestion", "cars", "driving", "google"]):
+        response = ChatResponse(
+            message="""🚗 I'm the TrafficAgent! I analyze Google Maps road traffic and its impact on walk-in customers.
+
+**What I track:**
+• Road congestion ratios (current vs free-flow speed)
+• Travel time delays near your location
+• Traffic DIRECTION (towards vs away from cafe)
+• Road closures and their impact
+
+**How I work:**
+I analyze Google Traffic data for points of interest near your cafe. The key insight is DIRECTION:
+• **Traffic flowing TOWARD** your cafe = more potential walk-ins
+• **Traffic flowing AWAY** = reduced exposure
+• **Congestion causing delays** = people may stop for coffee!
+
+To get analysis, send a TrafficRequest or ask the HypeLensMasterAgent!""",
+            success=True
+        )
+    elif any(word in user_input for word in ["help", "what", "how", "?"]):
+        response = ChatResponse(
+            message="🚗 Hi! I'm the TrafficAgent - part of HypeLens. I analyze how nearby road traffic affects cafe foot traffic. Ask me about 'traffic' or 'congestion'!",
+            success=True
+        )
+    else:
+        response = ChatResponse(
+            message="🚗 I'm the TrafficAgent. I analyze road congestion's impact on foot traffic. Ask me about 'traffic' or 'road conditions'!",
+            success=True
+        )
+    
+    await ctx.send(sender, response)
+
+
+traffic_agent.include(chat_protocol, publish_manifest=True)
 
 
 # =============================================================================

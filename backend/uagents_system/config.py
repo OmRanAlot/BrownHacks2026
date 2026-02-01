@@ -70,10 +70,10 @@ MASTER_AGENT_MAILBOX_KEY = os.getenv("MASTER_AGENT_MAILBOX_KEY", None)
 # AGENT PORTS (for local HTTP endpoints)
 # =============================================================================
 
-MASTER_AGENT_PORT = int(os.getenv("MASTER_AGENT_PORT", "8000"))
-WEATHER_AGENT_PORT = int(os.getenv("WEATHER_AGENT_PORT", "8001"))
-MTA_AGENT_PORT = int(os.getenv("MTA_AGENT_PORT", "8002"))
-TRAFFIC_AGENT_PORT = int(os.getenv("TRAFFIC_AGENT_PORT", "8003"))
+MASTER_AGENT_PORT = int(os.getenv("MASTER_AGENT_PORT", "9001"))
+WEATHER_AGENT_PORT = int(os.getenv("WEATHER_AGENT_PORT", "9002"))
+MTA_AGENT_PORT = int(os.getenv("MTA_AGENT_PORT", "9003"))
+TRAFFIC_AGENT_PORT = int(os.getenv("TRAFFIC_AGENT_PORT", "9004"))
 
 
 # =============================================================================

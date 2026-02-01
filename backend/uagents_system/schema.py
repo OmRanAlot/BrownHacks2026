@@ -10,6 +10,22 @@ from uagents import Model
 
 
 # =============================================================================
+# CHAT PROTOCOL MESSAGES (Required for Agentverse)
+# =============================================================================
+
+class ChatMessage(Model):
+    """Incoming chat message from Agentverse users."""
+    message: str
+    sender: Optional[str] = None
+
+
+class ChatResponse(Model):
+    """Response to chat messages."""
+    message: str
+    success: bool = True
+
+
+# =============================================================================
 # WEATHER AGENT MESSAGES
 # =============================================================================
 

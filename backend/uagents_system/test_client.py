@@ -39,8 +39,8 @@ MASTER_AGENT_ADDRESS = os.getenv("MASTER_AGENT_ADDRESS", None)
 test_client = Agent(
     name="HypeLensTestClient",
     seed=TEST_CLIENT_SEED,
-    port=8099,
-    endpoint=["http://127.0.0.1:8099/submit"],
+    port=9099,
+    endpoint=["http://127.0.0.1:9099/submit"],
     network="testnet",  # Register on testnet Almanac
 )
 

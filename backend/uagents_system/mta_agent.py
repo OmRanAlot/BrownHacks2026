@@ -11,7 +11,7 @@ Returns: MTAResponse
 import os
 import sys
 
-from uagents import Agent, Context
+from uagents import Agent, Context, Protocol
 from uagents.setup import fund_agent_if_low
 
 # Add parent paths for imports
@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 # Import message schemas
-from schema import MTARequest, MTAResponse
+from schema import MTARequest, MTAResponse, ChatMessage, ChatResponse
 
 # Import existing logic
 from agents.mta import run_mta_forecast
@@ -38,8 +38,8 @@ MTA_AGENT_MAILBOX_KEY = os.getenv("MTA_AGENT_MAILBOX_KEY", None)
 mta_agent = Agent(
     name="MTAAgent",
     seed=MTA_AGENT_SEED,
-    port=8002,
-    endpoint=["http://127.0.0.1:8002/submit"],
+    port=9003,
+    endpoint=["http://127.0.0.1:9003/submit"],
     mailbox=f"{MTA_AGENT_MAILBOX_KEY}@https://agentverse.ai" if MTA_AGENT_MAILBOX_KEY else None,
     network="testnet",  # Register on testnet Almanac
 )
@@ -107,6 +107,55 @@ async def handle_mta_request(ctx: Context, sender: str, msg: MTARequest):
     # Send response back to sender
     ctx.logger.info(f"📤 Sending MTAResponse to {sender}")
     await ctx.send(sender, response)
+
+
+# =============================================================================
+# CHAT PROTOCOL (Required for Agentverse)
+# =============================================================================
+
+chat_protocol = Protocol(name="MTAChat", version="1.0.0")
+
+
+@chat_protocol.on_message(model=ChatMessage)
+async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
+    """Handle natural language chat messages."""
+    ctx.logger.info(f"💬 Chat message from {sender}: {msg.message}")
+    
+    user_input = msg.message.lower().strip()
+    
+    if any(word in user_input for word in ["subway", "train", "mta", "transit", "crowding", "delay"]):
+        response = ChatResponse(
+            message="""🚇 I'm the MTAAgent! I analyze NYC subway conditions and their impact on foot traffic.
+
+**What I track:**
+• Live train arrivals vs baseline patterns
+• Subway crowding scores (busyness)
+• Train bunching and delays
+• Station exit foot traffic spillover
+
+**How I work:**
+I compare LIVE MTA data against historical baselines for the same hour. Increased subway crowding near station exits often increases sidewalk foot traffic, which can boost walk-in cafe customers.
+
+**Key insight:** Delayed/bunched trains cause people to linger near exits, increasing your potential customer exposure!
+
+To get analysis, send an MTARequest or ask the HypeLensMasterAgent!""",
+            success=True
+        )
+    elif any(word in user_input for word in ["help", "what", "how", "?"]):
+        response = ChatResponse(
+            message="🚇 Hi! I'm the MTAAgent - part of HypeLens. I analyze how NYC subway conditions affect cafe foot traffic. Ask me about 'subway impact' or 'mta crowding'!",
+            success=True
+        )
+    else:
+        response = ChatResponse(
+            message="🚇 I'm the MTAAgent. I analyze subway crowding's impact on foot traffic. Ask me about 'subway' or 'mta' data!",
+            success=True
+        )
+    
+    await ctx.send(sender, response)
+
+
+mta_agent.include(chat_protocol, publish_manifest=True)
 
 
 # =============================================================================
