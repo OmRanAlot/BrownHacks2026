@@ -27,7 +27,7 @@ log = logging.getLogger("event_engine")
 USER = os.getenv("MONGODB_USR")
 PW = os.getenv("MONGODB_PW")
 
-uri = f"mongodb+srv://{USER}:{PW}@cluster0.cgvjbgu.mongodb.net/?appName=Cluster0"
+uri = os.getenv("MONGODB_URI")
 
 mongo_client = MongoClient(uri, server_api=ServerApi("1"))
 db = mongo_client["event_engine"]
