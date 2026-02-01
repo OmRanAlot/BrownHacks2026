@@ -17,7 +17,7 @@ import asyncio
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 
-from uagents import Agent, Context
+from uagents import Agent, Context, Model, Protocol
 from uagents.setup import fund_agent_if_low
 
 # Add parent paths for imports
@@ -33,6 +33,7 @@ from schema import (
     WeatherRequest, WeatherResponse,
     MTARequest, MTAResponse,
     TrafficRequest, TrafficResponse,
+    ChatMessage, ChatResponse,
 )
 
 
@@ -52,8 +53,8 @@ TRAFFIC_AGENT_ADDRESS = os.getenv("TRAFFIC_AGENT_ADDRESS", None)
 master_agent = Agent(
     name="HypeLensMasterAgent",
     seed=MASTER_AGENT_SEED,
-    port=8000,
-    endpoint=["http://127.0.0.1:8000/submit"],
+    port=9001,
+    endpoint=["http://127.0.0.1:9001/submit"],
     mailbox=f"{MASTER_AGENT_MAILBOX_KEY}@https://agentverse.ai" if MASTER_AGENT_MAILBOX_KEY else None,
     network="testnet",  # Register on testnet Almanac
 )
@@ -436,6 +437,126 @@ async def timeout_check(ctx: Context):
         )
         
         await ctx.send(pending.original_sender, error_response)
+
+
+# =============================================================================
+# CHAT PROTOCOL (Required for Agentverse)
+# =============================================================================
+
+chat_protocol = Protocol(name="HypeLensChat", version="1.0.0")
+
+
+@chat_protocol.on_message(model=ChatMessage)
+async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
+    """
+    Handle natural language chat messages from Agentverse.
+    Parses user intent and triggers appropriate actions.
+    """
+    ctx.logger.info(f"💬 Chat message from {sender}: {msg.message}")
+    
+    user_input = msg.message.lower().strip()
+    
+    # Parse intent from natural language
+    if any(word in user_input for word in ["predict", "forecast", "traffic", "busy", "customers", "hype"]):
+        # User wants a prediction - create a HypeLensRequest
+        request_id = str(uuid.uuid4())[:8]
+        
+        # Extract time if mentioned (simple parsing)
+        hour = None
+        for h in range(24):
+            if f"{h}:00" in user_input or f"{h} pm" in user_input or f"{h} am" in user_input:
+                hour = h
+                break
+            if f"{h}pm" in user_input:
+                hour = h + 12 if h < 12 else h
+                break
+            if f"{h}am" in user_input:
+                hour = h
+                break
+        
+        # Check if sub-agents are configured
+        if not all([WEATHER_AGENT_ADDRESS, MTA_AGENT_ADDRESS, TRAFFIC_AGENT_ADDRESS]):
+            response = ChatResponse(
+                message="⚠️ I'm not fully configured yet. The sub-agent addresses need to be set in the .env file. Run `python run.py --discover` to get the addresses.",
+                success=False
+            )
+        else:
+            # Trigger prediction flow
+            hypelens_req = HypeLensRequest(
+                request_id=request_id,
+                business_name="Chat Request",
+                baseline_customers_per_hour=42.0,
+                time=hour,
+            )
+            
+            # Create pending request with chat sender
+            pending = PendingRequest(original_sender=sender, request=hypelens_req)
+            pending.is_chat_request = True  # Mark as chat request
+            _pending_requests[request_id] = pending
+            
+            # Fan out to sub-agents
+            await ctx.send(WEATHER_AGENT_ADDRESS, WeatherRequest(request_id=request_id, time=hour))
+            await ctx.send(MTA_AGENT_ADDRESS, MTARequest(request_id=request_id))
+            await ctx.send(TRAFFIC_AGENT_ADDRESS, TrafficRequest(request_id=request_id, baseline_customers_per_hour=42.0))
+            
+            response = ChatResponse(
+                message=f"🔄 Analyzing foot traffic... Request ID: {request_id}. I'm querying weather, subway, and traffic data. Results will arrive shortly!",
+                success=True
+            )
+    
+    elif any(word in user_input for word in ["help", "what", "how", "?"]):
+        response = ChatResponse(
+            message="""👋 Hi! I'm HypeLens, your NYC cafe foot traffic predictor.
+
+**What I can do:**
+• Predict customer foot traffic for your cafe
+• Analyze weather impact on walk-ins
+• Monitor MTA subway crowding near you
+• Track Google Traffic congestion patterns
+
+**Try saying:**
+• "Predict foot traffic for today"
+• "How busy will it be at 6pm?"
+• "Forecast customers for this evening"
+
+I combine signals from weather, subway, and traffic data to give you a "Hype Score" prediction!""",
+            success=True
+        )
+    
+    elif any(word in user_input for word in ["hello", "hi", "hey"]):
+        response = ChatResponse(
+            message="👋 Hello! I'm HypeLens, your NYC foot traffic prediction agent. Ask me to predict how busy your cafe will be, and I'll analyze weather, subway, and traffic data for you!",
+            success=True
+        )
+    
+    elif any(word in user_input for word in ["status", "health", "agents"]):
+        configured = all([WEATHER_AGENT_ADDRESS, MTA_AGENT_ADDRESS, TRAFFIC_AGENT_ADDRESS])
+        status = "✅ All sub-agents configured" if configured else "⚠️ Some sub-agents not configured"
+        response = ChatResponse(
+            message=f"""📊 **HypeLens Status**
+            
+{status}
+
+**Sub-Agents:**
+• 🌤️ Weather: {'Connected' if WEATHER_AGENT_ADDRESS else 'Not configured'}
+• 🚇 MTA: {'Connected' if MTA_AGENT_ADDRESS else 'Not configured'}  
+• 🚗 Traffic: {'Connected' if TRAFFIC_AGENT_ADDRESS else 'Not configured'}
+
+**Pending Requests:** {len(_pending_requests)}""",
+            success=True
+        )
+    
+    else:
+        response = ChatResponse(
+            message="🤔 I'm not sure what you mean. Try asking me to 'predict foot traffic' or say 'help' to see what I can do!",
+            success=True
+        )
+    
+    await ctx.send(sender, response)
+
+
+# Include the chat protocol in the agent
+master_agent.include(chat_protocol, publish_manifest=True)
 
 
 # =============================================================================
