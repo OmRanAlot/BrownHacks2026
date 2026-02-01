@@ -1,10 +1,18 @@
 import os
 import json
+from datetime import datetime, date as date_type
 from pinecone import Pinecone
 from openai import OpenAI
 from dotenv import load_dotenv
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from services.weather import fetch_hourly_weather
 
 load_dotenv()
+
+# Default NYC location for weather when predicting by date/time
+DEFAULT_LAT, DEFAULT_LON = 40.770530, -73.982456
 
 # Configuration
 PINECONE_INDEX = "manual-foot-traffic-vectors"
@@ -20,6 +28,160 @@ client = OpenAI(
   base_url="https://openrouter.ai/api/v1",
   api_key=gemini,
 )
+
+
+def _build_query_text_from_datetime(
+    date=None,
+    time=None,
+    *,
+    borough="Manhattan",
+    business_type="cafe",
+    location="NYC",
+    events="",
+    lat=DEFAULT_LAT,
+    lon=DEFAULT_LON,
+):
+    """
+    Build embedding-style query text from date/time and optional context.
+    date: str "YYYY-MM-DD" or date object; default today.
+    time: str "HH:MM" or "H:MM", or int hour 0-23; default current hour.
+    """
+    now = datetime.now()
+    if date is None and time is None:
+        dt = now
+    elif date is None:
+        dt = now
+        if isinstance(time, int):
+            dt = dt.replace(hour=min(23, max(0, time)), minute=0, second=0, microsecond=0)
+        elif isinstance(time, str):
+            parts = time.strip().split(":")
+            dt = dt.replace(hour=min(23, max(0, int(parts[0]))), minute=int(parts[1]) if len(parts) > 1 else 0, second=0, microsecond=0)
+    else:
+        if isinstance(date, str):
+            date_str = date.strip()
+            if "T" in date_str:
+                dt = datetime.fromisoformat(date_str.replace("Z", ""))
+            else:
+                dt = datetime.strptime(date_str, "%Y-%m-%d")
+            if time is not None:
+                if isinstance(time, int):
+                    dt = dt.replace(hour=min(23, max(0, time)), minute=0, second=0, microsecond=0)
+                elif isinstance(time, str):
+                    parts = time.strip().split(":")
+                    dt = dt.replace(hour=min(23, max(0, int(parts[0]))), minute=int(parts[1]) if len(parts) > 1 else 0, second=0, microsecond=0)
+        else:
+            dt = date if hasattr(date, "hour") else datetime.combine(date, now.time()) if isinstance(date, date_type) else date
+            if time is not None:
+                if isinstance(time, int):
+                    dt = dt.replace(hour=min(23, max(0, time)), minute=0, second=0, microsecond=0)
+                elif isinstance(time, str):
+                    parts = time.strip().split(":")
+                    dt = dt.replace(hour=min(23, max(0, int(parts[0]))), minute=int(parts[1]) if len(parts) > 1 else 0, second=0, microsecond=0)
+
+    hour = dt.hour
+    month = dt.month
+    if month in (12, 1, 2):
+        season = "Winter"
+    elif month in (3, 4, 5):
+        season = "Spring"
+    elif month in (6, 7, 8):
+        season = "Summer"
+    else:
+        season = "Fall"
+    is_holiday = False
+
+    _, hourly_weather = fetch_hourly_weather(lat, lon, 24)
+    weather_at_hour = hourly_weather[hour] if hour < len(hourly_weather) else hourly_weather[-1]
+    weather_condition = weather_at_hour.get("condition", "Unknown")
+    temperature = weather_at_hour.get("temp_f", 70)
+
+    text_to_embed = (
+        f"Borough: {borough}, "
+        f"Business: {business_type}, "
+        f"Weather: {weather_condition}, "
+        f"Events: {events or 'None'}, "
+        f"Location: {location}, "
+        f"Temperature: {temperature}, "
+        f"Season: {season}, "
+        f"Is Holiday: {is_holiday}, "
+        f"Hour: {hour}, "
+    )
+    return text_to_embed, dt
+
+
+def _run_prediction(query_text, top_k=3):
+    """RAG + LLM prediction; returns parsed JSON and raw response text."""
+    search_results = index.search(
+        namespace=NAMESPACE,
+        query={
+            "inputs": {"text": query_text},
+            "top_k": top_k,
+            "filter": {"foot_traffic": {"$exists": True}},
+        },
+        fields=["embedding_text", "foot_traffic"],
+    )
+    historical_context = ""
+    result = search_results.result
+    hits = result.hits if hasattr(result, "hits") else []
+    for hit in hits:
+        fields = getattr(hit, "fields", None) or {}
+        emb = fields.get("embedding_text", "")
+        traffic = fields.get("foot_traffic", "?")
+        historical_context += f"- Past Record: {emb} | ACTUAL TRAFFIC: {traffic}\n"
+
+    prompt = f"""
+You are an NYC Foot Traffic AI. Predict traffic for the 'Target' based on 'History'.
+
+HISTORY:
+{historical_context if historical_context else "No direct history found. Use NYC logic."}
+
+TARGET EVENT:
+{query_text}
+
+Return ONLY a JSON object:
+{{
+    "predicted_traffic": (number),
+    "reasoning": (one sentence explaining why based on weather/event),
+    "time": (time of the day)
+}}
+"""
+    response = client.chat.completions.create(
+        model="google/gemini-3-flash-preview",
+        messages=[{"role": "user", "content": prompt}],
+        response_format={"type": "json_object"},
+    )
+    raw = response.choices[0].message.content
+    try:
+        return json.loads(raw), raw
+    except json.JSONDecodeError:
+        return {"predicted_traffic": None, "reasoning": raw, "time": None}, raw
+
+
+def predict_for_datetime(date=None, time=None, borough="Manhattan", business_type="cafe", **kwargs):
+    """
+    Predict foot traffic for a given date and/or time (no record ID needed).
+
+    Args:
+        date: "YYYY-MM-DD" or datetime.date; default today.
+        time: "HH:MM" or hour (0-23); default current hour.
+        borough: e.g. "Manhattan".
+        business_type: e.g. "cafe".
+        **kwargs: passed to _build_query_text_from_datetime (location, events, lat, lon).
+
+    Returns:
+        dict with keys: predicted_traffic, reasoning, time, query_text, target_datetime.
+    """
+    query_text, target_dt = _build_query_text_from_datetime(
+        date=date, time=time, borough=borough, business_type=business_type, **kwargs
+    )
+    payload, raw = _run_prediction(query_text)
+    return {
+        "predicted_traffic": payload.get("predicted_traffic"),
+        "reasoning": payload.get("reasoning", raw),
+        "time": payload.get("time"),
+        "query_text": query_text,
+        "target_datetime": target_dt.isoformat(),
+    }
 
 
 def predict_missing_metrics(target_ids):
@@ -44,56 +206,14 @@ def predict_missing_metrics(target_ids):
 
         print(f"--- Predicting for {record_id} ---")
         print(f"Target Context: {query_text}")
-
-        # B. RAG: Search for 3 HISTORICAL matches in the same index
-        # Metadata filter ensures we only get records with ACTUAL foot_traffic
-        search_results = index.search(
-            namespace=NAMESPACE,
-            query={
-                "inputs": {"text": query_text},
-                "top_k": 3,
-                "filter": {"foot_traffic": {"$exists": True}},
-            },
-            fields=["embedding_text", "foot_traffic"],
-        )
-
-        # C. Format historical grounding for Gemini (new API: result.hits, each hit has .fields)
-        historical_context = ""
-        result = search_results.result
-        hits = result.hits if hasattr(result, "hits") else []
-        for hit in hits:
-            fields = getattr(hit, "fields", None) or {}
-            emb = fields.get("embedding_text", "")
-            traffic = fields.get("foot_traffic", "?")
-            historical_context += f"- Past Record: {emb} | ACTUAL TRAFFIC: {traffic}\n"
-
-        # D. The Prediction Prompt
-        prompt = f"""
-        You are an NYC Foot Traffic AI. Predict traffic for the 'Target' based on 'History'.
-        
-        HISTORY:
-        {historical_context if historical_context else "No direct history found. Use NYC logic."}
-        
-        TARGET EVENT:
-        {query_text}
-
-        Return ONLY a JSON object:
-        {{
-            "predicted_traffic": (number),
-            "reasoning": (one sentence explaining why based on weather/event)
-        }}
-        """
-
-        # E. Generate and Save
-        response = client.chat.completions.create(
-            model="google/gemini-3-flash-preview",
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"}
-        )
-        print(response.choices[0].message.content)
-        exit()
+        payload, raw = _run_prediction(query_text)
+        print(raw)
+        # Optional: upsert predicted_traffic back to Pinecone for this record_id
 # --- EXECUTION ---
-# You can pass a list of IDs from your screenshot (e.g., ["event_896004"])
-predict_missing_metrics(["event_896004"])
-
-# {"predicted_traffic": 100, "reasoning": "The weather was sunny and the event was a concert."}
+# predict_missing_metrics(["event_896004"])
+# predict_for_datetime(date="2026-01-31", time=18)  # 6 PM
+# predict_for_datetime(time="14:30")  # today at 2:30 PM
+# predict_for_datetime(date="2026-02-01")  # tomorrow, default hour
+if __name__ == "__main__":
+    result = predict_for_datetime(date="2026-01-31", time=18)
+    print(json.dumps(result, indent=2))
